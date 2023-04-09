@@ -16,17 +16,152 @@ code-block-font-size: \scriptsize
 
 # Lab 02: MapReduce Programming
 
-## Problem 9: Telecom Call Data Record Program
+## Problem 05: MaxTemp Program
+
+Given a set of temperature records in specific format, write a MapReduce program to find out the maximum temperature for each year.
+
+The input file is a text file with each line containing a temperature record in the following format:
+
+```text
+<Year> <Temperature>
+```
+
+For example, the following lines are temperature records:
+
+```text
+1900 36
+1900 29
+1901 32
+1901 40
+1901 29
+1901 48
+1901 16
+1901 11
+1901 21
+1901 6
+1901 22
+1902 49
+1902 49
+```
+
+To solve this problem, we need to find all temperature records for each year, then find the maximum temperature for each year.
+
+**Implementation with MapReduce**
+
+The first step is to write the mapper. It will read each line of the input file and output the year and the temperature.
+
+`MaxTempMapper`:
+
+```java
+public static class MaxTempMapper extends Mapper<LongWritable, Text, IntWritable, FloatWritable> {
+	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+		// get the necessary fields from the input record
+		String[] fields = value.toString().split("\\s+");
+		String year = fields[0];
+		String temp = fields[1];
+
+		// emit the year and the temperature
+		context.write(new IntWritable(Integer.parseInt(year)),
+						new FloatWritable(Float.parseFloat(temp)));
+	}
+}
+```
+
+The reducer will read the year and the temperature, then find the maximum temperature for each year.
+
+`MaxTempReducer`:
+
+```java
+public static class MaxTempReducer extends Reducer<IntWritable, FloatWritable, IntWritable, FloatWritable> {
+	public void reduce(IntWritable key, Iterable<FloatWritable> values, Context context) throws IOException, InterruptedException {
+		// find the maximum temperature
+		float maxTemp = Float.MIN_VALUE;
+		for (FloatWritable value : values) {
+			if (value.get() > maxTemp) {
+				maxTemp = value.get();
+			}
+		}
+
+		// emit the year and the maximum temperature
+		context.write(key, new FloatWritable(maxTemp));
+	}
+}
+```
+
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem05).
+
+Here is the directory structure of the project:
+
+```
+📦problem05
+┣ 📂output
+┣ 📜input.txt
+┗ 📜MaxTemp.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hdfs dfs -mkdir /user/phihungtf/mt
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hdfs dfs -put input.txt /user/phihungtf/mt
+```
+
+![Problem 05: Copy input file to HDFS](images/problem05/copy-input-file-to-hdfs.png)
+
+Compile the `MaxTemp.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main MaxTemp.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf mt.jar MaxTemp*.class
+```
+
+Run the MapReduce job:
+
+```bash
+hadoop jar mt.jar MaxTemp /user/phihungtf/mt/input.txt /user/phihungtf/mt/output
+```
+
+![Problem 05: Run MapReduce job](images/problem05/run-mapreduce-job.png)
+
+![Problem 05: MapReduce job output](images/problem05/mapreduce-job-output.png)
+
+Copy the output files from the HDFS to the local file system:
+
+```bash
+hdfs dfs -get /user/phihungtf/mt/output/* output
+```
+
+Examine the output files:
+
+```bash
+cat output/*
+```
+
+![Problem 05: Output files](images/problem05/output-files.png)
+
+## Problem 09: Telecom Call Data Record Program
 
 Given a set of call records in specific format, write a MapReduce program to find out all phone numbers who are making more than 60 mins of STD Calls.
 
 The input file is a text file with each line containing a call record in the following format:
 
 ```text
-<Caller Phone Number>,<Receiver Phone Number>,<Call Start Time>,<Call End Time>,<Call Type>
+<Caller Phone Number>|<Receiver Phone Number>|<Call Start Time>|<Call End Time>|<Call Type>
 ```
 
-For example, the following line is a call record:
+For example, the following lines are call records:
 
 ```text
 9665128505|8983006310|2015-03-01 07:08:10|2015-03-01 08:12:15|0

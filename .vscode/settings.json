@@ -40,5 +40,10 @@
 		"f:\\SchoolDocument\\BigData\\hadoop\\mapreduce\\sources\\hadoop-mapreduce-examples-3.3.5-test-sources.jar",
 		"f:\\SchoolDocument\\BigData\\hadoop\\mapreduce\\lib-examples\\hsqldb-2.7.1-jdk8.jar",
 		"f:\\SchoolDocument\\BigData\\hadoop\\common\\lib\\commons-logging-1.1.3.jar"
+	],
+	"java.project.sourcePaths": [
+		"src\\problem09",
+		"src\\problem10",
+		"src\\problem05"
 	]
 }
