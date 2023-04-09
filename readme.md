@@ -1,7 +1,7 @@
 <div style="text-align: center">
     <span style="font-size: 3em; font-weight: 700; font-family: Consolas">
-        Lab 01 <br>
-        A Gentle Introduction to Hadoop
+        Lab 02 <br>
+        MapReduce Programming
     </span>
     <br><br>
     <span style="">
