@@ -1,7 +1,7 @@
 ---
-title: 'Lab 01: A Gentle Introduction to Hadoop'
+title: 'Lab 02: MapReduce Programming'
 author: ['BaDao']
-date: '2023-02-17'
+date: '2023-04-09'
 subtitle: 'CSC14118 Introduction to Big Data 20KHMT1'
 lang: 'en'
 titlepage: true
@@ -14,7 +14,155 @@ classoption: oneside
 code-block-font-size: \scriptsize
 ---
 
-# Lab 01: MapReduce Programming
+# Lab 02: MapReduce Programming
+
+## Problem 9: Telecom Call Data Record Program
+
+Given a set of call records in specific format, write a MapReduce program to find out all phone numbers who are making more than 60 mins of STD Calls.
+
+The input file is a text file with each line containing a call record in the following format:
+
+```text
+<Caller Phone Number>,<Receiver Phone Number>,<Call Start Time>,<Call End Time>,<Call Type>
+```
+
+For example, the following line is a call record:
+
+```text
+9665128505|8983006310|2015-03-01 07:08:10|2015-03-01 08:12:15|0
+9665128505|8983006310|2015-03-01 09:08:10|2015-03-01 09:12:15|1
+9665128505|8983006310|2015-03-01 09:08:10|2015-03-01 10:12:15|0
+9665128506|8983006310|2015-03-01 09:08:10|2015-03-01 10:12:15|1
+9665128507|8983006310|2015-03-01 09:08:10|2015-03-01 10:12:15|1
+9665128505|8983006310|2015-03-01 09:08:10|2015-03-01 10:12:15|1
+```
+
+To solve this problem, we need to calculate the total duration of STD calls for each phone number. If the total duration is more than 60 mins, then we will output the phone number.
+
+**Implementation with MapReduce**
+
+The first step is to write the mapper. It will read each line of the input file and output the phone number and the duration of its STD call. If the call is not a STD call, no output will be produced.
+
+`STDMapper`:
+
+```java
+public static class STDMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
+
+	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+		// get the necessary fields from the input record
+		String[] fields = value.toString().split("\\|");
+		String fromPhoneNum = fields[0];
+		String callStartTimeStr = fields[2];
+		String callEndTimeStr = fields[3];
+		String stdFlag = fields[4];
+
+		// check if the call is STD call
+		if (stdFlag.equals("1")) {
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			Date callStartTime = null;
+			Date callEndTime = null;
+			try { // parse the date strings
+				callStartTime = sdf.parse(callStartTimeStr);
+				callEndTime = sdf.parse(callEndTimeStr);
+
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+
+			// calculate the duration of the call in minutes
+			long durationInMinutes = (callEndTime.getTime() - callStartTime.getTime()) / (60 * 1000);
+
+			// emit the phone number and duration of the call
+			context.write(new Text(fromPhoneNum), new LongWritable(durationInMinutes));
+		}
+	}
+}
+```
+
+The reducer will read the phone number and the duration of its STD calls, then sum up the duration of all STD calls and output the phone number if the total duration is more than 60 mins.
+
+`STDReducer`:
+
+```java
+public static class STDReducer extends Reducer<Text, LongWritable, Text, NullWritable> {
+	public void reduce(Text key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
+		long totalDuration = 0; // total duration of the calls made by the subscriber
+
+		// calculate the total duration of the calls made by the subscriber
+		for (LongWritable val : values) {
+			totalDuration += val.get();
+		}
+		// check if total duration is greater than 60 minutes
+		// if yes, emit the phone number
+		if (totalDuration > 60) {
+			context.write(key, NullWritable.get());
+		}
+	}
+}
+```
+
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem09).
+
+Here is the directory structure of the project:
+
+```
+📦problem09
+┣ 📂output
+┣ 📜CDRlog.txt
+┗ 📜STDSubscribers.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hdfs dfs -mkdir /user/phihungtf/std
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hdfs dfs -put CDRlog.txt /user/phihungtf/std
+```
+
+![Problem 09: Copy input file to HDFS](images/problem09/copy-input-file-to-hdfs.png)
+
+Compile the `STDSubscribers.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main STDSubscribers.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf std.jar STDSubscribers*.class
+```
+
+Run the MapReduce job:
+
+```bash
+hadoop jar std.jar STDSubscribers /user/phihungtf/std/CDRlog.txt /user/phihungtf/std/output
+```
+
+![Problem 09: Run MapReduce job](images/problem09/run-mapreduce-job.png)
+
+![Problem 09: MapReduce job output](images/problem09/mapreduce-job-output.png)
+
+Copy the output files from the HDFS to the local file system:
+
+```bash
+hdfs dfs -get /user/phihungtf/std/output/* output
+```
+
+Examine the output files:
+
+```bash
+cat output/*
+```
+
+![Problem 09: Output files](images/problem09/output-files.png)
 
 ## Problem 10: Count Connected Component Program
 
@@ -39,7 +187,7 @@ Suppose we have a graph with its adjacency list representation
 
 and the visualization of the graph
 
-![Graph](images/graph.png)
+![Problem 10: Graph](images/problem10/graph.png)
 
 The point is that we will find the classifier of each connected component. In this case, it is the lowest node in each connected component. In the graph above, there are 4 connected components: `[0, 9, 1, 4]; [2, 7]; [8, 3, 5]; [6]` and their corresponding classifiers are `0`, `2`, `3`, and `6`.
 
@@ -368,7 +516,7 @@ job.setOutputValueClass(VertexWritable.class);
 job.waitForCompletion(true);
 ```
 
-2. The next jobs is used to run the `VertexMapper` and `VertexReducer`. This job will read the output of the job before and output the result in binary format.
+2. The next jobs is used to run the `VertexMapper` and `VertexReducer`. These jobs will read the output of the job before and output the result in binary format.
 
 ```java
 long counter = job.getCounters().findCounter(JobCounter.JOB).getValue();
@@ -410,7 +558,7 @@ while (counter > 0) {
 }
 ```
 
-3. When the counter is 0, the third job will run the `MinVertexIDMapper` and `TextOutputReducer`. This job will count the number of connected components and output the result in text format.
+3. When the counter is `0`, the third job will run the `MinVertexIDMapper` and `TextOutputReducer`. This job will count the number of connected components and output the result in text format.
 
 ```java
 // final job to write the number of connected components
@@ -447,7 +595,7 @@ job.setOutputValueClass(NullWritable.class); // null because there is only one v
 job.waitForCompletion(true);
 ```
 
-The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab1/blob/main/src/Unhealthy_relationship.java).
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem10).
 
 Here is the directory structure of the project:
 
@@ -499,9 +647,9 @@ Run the MapReduce job:
 hadoop jar cc.jar ConnectedComponents /user/phihungtf/cc/input.txt /user/phihungtf/cc/output
 ```
 
-![Run MapReduce job](images/problem10/run-mapreduce-job.png)
+![Problem 10: Run MapReduce job](images/problem10/run-mapreduce-job.png)
 
-![MapReduce job output](images/problem10/mapreduce-job-output.png)
+![Problem 10: MapReduce job output](images/problem10/mapreduce-job-output.png)
 
 Copy the output files from the HDFS to the local file system:
 
@@ -515,7 +663,7 @@ Examine the output files:
 cat output/final/*
 ```
 
-![Output files](images/problem10/output-files.png)
+![Problem 10: Output files](images/problem10/output-files.png)
 
 ## Conclusion
 

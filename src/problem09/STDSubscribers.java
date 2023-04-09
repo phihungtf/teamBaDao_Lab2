@@ -18,20 +18,20 @@ public class STDSubscribers {
 
     public static class STDMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
 
-        private Text phoneNum = new Text();
-        private LongWritable duration= new LongWritable();
-
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+			// get the necessary fields from the input record
             String[] fields = value.toString().split("\\|");
+			String fromPhoneNum = fields[0];
+			String callStartTimeStr = fields[2];
+			String callEndTimeStr = fields[3];
             String stdFlag = fields[4];
+
+			// check if the call is STD call
             if (stdFlag.equals("1")) {
-                String fromPhoneNum = fields[0];
-				String callStartTimeStr = fields[2];
-                String callEndTimeStr = fields[3];
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 				Date callStartTime = null;
                 Date callEndTime = null;
-                try {
+                try { // parse the date strings
 					callStartTime = sdf.parse(callStartTimeStr);
                     callEndTime = sdf.parse(callEndTimeStr);
 
@@ -39,23 +39,24 @@ public class STDSubscribers {
                     e.printStackTrace();
                 }
 				
+				// calculate the duration of the call in minutes
 				long durationInMinutes = (callEndTime.getTime() - callStartTime.getTime()) / (60 * 1000);
 
-                phoneNum.set(fromPhoneNum);
-				duration.set(durationInMinutes);
-				context.write(phoneNum, duration);
+				// emit the phone number and duration of the call
+				context.write(new Text(fromPhoneNum), new LongWritable(durationInMinutes));
             }
         }
     }
-
     public static class STDReducer extends Reducer<Text, LongWritable, Text, NullWritable> {
-        public void reduce(Text key, Iterable<LongWritable> values, Context context)
-                throws IOException, InterruptedException {
-            long totalDuration = 0;
+        public void reduce(Text key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
+            long totalDuration = 0; // total duration of the calls made by the subscriber
+
+			// calculate the total duration of the calls made by the subscriber
 			for (LongWritable val : values) {
 				totalDuration += val.get();
 			}
 			// check if total duration is greater than 60 minutes
+			// if yes, emit the phone number
 			if (totalDuration > 60) {
 				context.write(key, NullWritable.get());
 			}
