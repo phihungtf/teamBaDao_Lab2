@@ -16,6 +16,301 @@ code-block-font-size: \scriptsize
 
 # Lab 02: MapReduce Programming
 
+## Problem 01: WordCount Program
+
+In the first section, we will try to solve a problem: Word count. The purpose of this issue is to calculate the number of nodes (words) that appear.
+
+Here is an example of the input file:
+
+```text
+hello welcome
+welcome to big data
+data is good
+```
+
+To solve this problem, we easily split the input into two parts: key and the number of occurrences of the key. The result is as follows:
+
+| key     | value |
+| ------- | ----- |
+| hello   | 1     |
+| welcome | 1     |
+| welcome | 1     |
+| to      | 1     |
+| big     | 1     |
+| data    | 1     |
+| data    | 1     |
+| is      | 1     |
+| good    | 1     |
+
+Finally, we can sum up the values of each key. The result is as follows:
+
+Now we can count the number of occurrences of each node. The result is as follows:
+
+| key     | value |
+| ------- | ----- |
+| hello   | 1     |
+| welcome | 2     |
+| to      | 1     |
+| big     | 1     |
+| data    | 2     |
+| is      | 1     |
+| good    | 1     |
+
+**Implementation with MapReduce**
+
+We can implement this problem with MapReduce. The mapper will split the input into key and value. The reducer will sum up the values of each key.
+
+Mapper:
+
+```java
+public static class Map extends Mapper<LongWritable, Text, Text, IntWritable> {
+  private final static IntWritable one = new IntWritable(1);
+  private Text word = new Text();
+
+  public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+    // Split the input into key and value
+    String line = value.toString();
+    StringTokenizer tokenizer = new StringTokenizer(line);
+    while (tokenizer.hasMoreTokens()) {
+      word.set(tokenizer.nextToken());
+      // Assign the value 1 to each node
+      context.write(word, one);
+    }
+  }
+}
+```
+
+Reducer:
+
+```java
+public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
+  public void reduce(Text key, Iterable<IntWritable> values, Context context)  throws IOException, InterruptedException {
+    // Sum up the values of each node
+    int sum = 0;
+    for (IntWritable val : values) {
+      sum += val.get();
+    }
+    // Label each node
+    context.write(key, new IntWritable(sum));
+  }
+}
+```
+
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem01).
+
+Here is the directory structure of the project:
+
+```
+📦problem01
+ ┣ 📂output
+ ┣ 📂input
+ ┃  ┗ 📜 file01
+ ┗ 📜WordCount.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hadoop fs -mkdir /WordCount
+hadoop fs -mkdir /WordCount/input
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hadoop fs -put Input/file01 /WordCount/input
+```
+
+![Problem 01: Copy input file to HDFS](images/problem01/input.png)
+
+Compile the `WordCount.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main WordCount.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf WordCount.jar WordCount*.class
+```
+
+Run the MapReduce job:
+
+```bash
+hadoop jar WordCount.jar WordCount /WordCount/input /WordCount/output
+```
+
+![Problem 01: Run MapReduce job](images/problem01/WordCount1.png)
+
+![Problem 01: MapReduce job output](images/problem01/WordCount2.png)
+
+![Problem 01: Output](images/problem01/output.png)
+
+## Problem 04: Patent
+
+In this section, we will try to solve a problem: Patent. The purpose of this issue is to calculate the number of patents that each inventor has.
+
+Here is an example of the input file:
+
+```text
+1 1.11111
+1 1.11113
+1 1.11114
+1 1.11311
+1 1.11313
+2 2.11311
+2 2.11313
+2 2.11314
+2 2.11315
+2 2.11316
+2 2.11317
+2 2.11318
+2 2.11319
+3 3.11311
+3 3.11313
+3 3.11314
+3 3.11315
+3 3.11316
+3 3.11317
+3 3.11318
+3 3.11319
+3 3.11321
+3 3.11322
+```
+
+To solve this problem, we easily split the input into two parts: key and the number of occurrences of the key. The result is as follows:
+
+| key | value   |
+| --- | ------- |
+| 1   | 1.11111 |
+| 1   | 1.11113 |
+| 1   | 1.11114 |
+| 1   | 1.11311 |
+| 1   | 1.11313 |
+| 2   | 2.11311 |
+| 2   | 2.11313 |
+| 2   | 2.11314 |
+| 2   | 2.11315 |
+| 2   | 2.11316 |
+| 2   | 2.11317 |
+| 2   | 2.11318 |
+| 2   | 2.11319 |
+| 3   | 3.11311 |
+| 3   | 3.11313 |
+| 3   | 3.11314 |
+| 3   | 3.11315 |
+| 3   | 3.11316 |
+| 3   | 3.11317 |
+| 3   | 3.11318 |
+| 3   | 3.11319 |
+| 3   | 3.11321 |
+| 3   | 3.11322 |
+
+Finally, we can count the number of occurrences of each key. The result is as follows:
+
+| key | value |
+| --- | ----- |
+| 1   | 5     |
+| 2   | 8     |
+| 3   | 10    |
+
+**Implementation with MapReduce**
+
+We can implement this problem with MapReduce. The mapper will split the input into two parts: key and value. The reducer will count the number of occurrences of each key.
+
+Mapper:
+
+```java
+public static class Map extends Mapper<LongWritable, Text, Text, Text> {
+  Text k = new Text();
+  Text v = new Text();
+
+  public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+    // Split the input into key and value
+    String line = value.toString();
+    StringTokenizer tokenizer = new StringTokenizer(line, " ");
+    // signal the key and value
+    while (tokenizer.hasMoreTokens()) {
+      k.set(tokenizer.nextToken());
+      v.set(tokenizer.nextToken());
+      context.write(k, v);
+    }
+  }
+}
+```
+
+Reducer:
+
+```java
+public static class Reduce extends Reducer<Text, Text, Text, IntWritable> {
+  public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+    // Count the number of occurrences of each key
+    int sum = 0;
+    for (Text x : values) {
+      sum++;
+    }
+    // Label each node
+    context.write(key, new IntWritable(sum));
+  }
+}
+```
+
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem04)
+
+Here is the directory structure of the project:
+
+```
+📦problem04
+ ┣ 📂output
+ ┣ 📂input
+ ┃  ┗ 📜 file01
+ ┗ 📜Patent.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hadoop fs -mkdir /Patent
+hadoop fs -mkdir /Patent/input
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hadoop fs -put Input/file01 /Patent/input
+```
+
+![Problem 04: Copy input file to HDFS](images/problem04/input.png)
+
+Compile the `WordCount.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main Patent.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf Patent.jar Patent*.class
+```
+
+Run the MapReduce job:
+
+```bash
+hadoop jar Patent.jar Patent /Patent/input /Patent/output
+```
+
+![Problem 04: Run MapReduce job](images/problem04/Patent1.png)
+
+![Problem 04: MapReduce job output](images/problem04/Patent2.png)
+
+![Problem 04: Output](images/problem04/output.png)
+
 ## Problem 05: MaxTemp Program
 
 Given a set of temperature records in specific format, write a MapReduce program to find out the maximum temperature for each year.
@@ -150,6 +445,146 @@ cat output/*
 ```
 
 ![Problem 05: Output files](images/problem05/output-files.png)
+
+## Problem 06: Average Salary
+
+In this section, we will try to solve a problem: Average Salary. The purpose of this issue is to calculate the average salary of each department.
+
+Here is an example of the input file:
+
+```text
+20120474,9.3
+20120475,9.3
+20120476,9.3
+20120477,9.8
+20120474,10.2
+20120475,10.2
+20120476,10.5
+20120477,10.5
+20120478,9.6
+```
+
+To solve this problem, we easily split the input into two parts: key and the number of occurrences of the key. The result is as follows:
+
+| key      | value |
+| -------- | ----- |
+| 20120474 | 9.3   |
+| 20120475 | 9.3   |
+| 20120476 | 9.3   |
+| 20120477 | 9.8   |
+| 20120474 | 10.2  |
+| 20120475 | 10.2  |
+| 20120476 | 10.5  |
+| 20120477 | 10.5  |
+| 20120478 | 9.6   |
+
+Finally, we can count Average Salary of each department. The result is as follows:
+
+| key      | value |
+| -------- | ----- |
+| 20120474 | 9.75  |
+| 20120475 | 9.75  |
+| 20120476 | 9.9   |
+| 20120477 | 10.15 |
+| 20120478 | 9.6   |
+
+**Implementation with MapReduce**
+
+We can implement this problem with MapReduce. The mapper will split the input into key and value. The reducer will count Average Salary of each department.
+
+Mapper:
+
+```java
+public static class avgMapper extends Mapper<Object, Text, Text, FloatWritable> {
+  private Text dept_id = new Text();
+  private FloatWritable salary = new FloatWritable();
+  public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+    // Split the input into key and value
+    String line = value.toString();
+    StringTokenizer itr = new StringTokenizer(line, ",");
+    // signal the key and value
+    while (itr.hasMoreTokens()) {
+      dept_id.set(itr.nextToken());
+      salary = new FloatWritable(Float.parseFloat(itr.nextToken()));
+      context.write(dept_id, salary);
+    }
+  }
+}
+```
+
+Reducer:
+
+```java
+public static class avgReducer extends Reducer<Text, FloatWritable, Text, FloatWritable> {
+  private FloatWritable result = new FloatWritable();
+  public void reduce(Text key, Iterable<FloatWritable> values, Context context)
+      throws IOException, InterruptedException {
+    // Count sum and calculate the average salary
+    float sum = 0;
+    float count = 0;
+    for (FloatWritable val : values) {
+      sum += val.get();
+      count++;
+    }
+    // Label each node
+    result.set(sum / count);
+    context.write(key, result);
+  }
+}
+```
+
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem05).
+
+Here is the directory structure of the project:
+
+```
+📦src
+ ┣ 📂output
+ ┣ 📂input
+ ┃  ┗ 📜 file01
+ ┗ 📜AverageSalary.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hadoop fs -mkdir /AverageSalary
+hadoop fs -mkdir /AverageSalary/input
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hadoop fs -put Input/file01 /AverageSalary/input
+```
+
+![Problem 05: Copy input file to HDFS](images/problem06/input.png)
+
+Compile the `AverageSalary.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main AverageSalary.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf AverageSalary.jar AverageSalary*.class
+```
+
+Run the MapReduce job:
+
+```bash
+hadoop jar AverageSalary.jar AverageSalary /AverageSalary/input /AverageSalary/output
+```
+
+![Problem 05: Run MapReduce job](images/problem06/AverageSalary1.png)
+
+![Problem 05: MapReduce job output](images/problem06/AverageSalary2.png)
+
+![Problem 05: Output](images/problem06/output.png)
 
 ## Problem 09: Telecom Call Data Record Program
 

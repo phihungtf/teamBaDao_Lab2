@@ -13,7 +13,6 @@
 
 - `20120489` **Võ Phi Hùng** ([@phihungtf](https://github.com/phihungtf))
 - `20120474` **Lê Kim Hiếu** ([@kimhieu153255](https://github.com/kimhieu153255))
-- `20120632` **Trần Thái Vỹ** ([@TranThaiVy](https://github.com/TranThaiVy))
 - `20120573` **Nguyễn Phú Tân** ([@NPT-DEV40](https://github.com/NPT-DEV40))
 
 ## Instructors
