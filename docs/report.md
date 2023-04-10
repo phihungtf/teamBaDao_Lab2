@@ -203,56 +203,55 @@ Mapper:
 
 ```java
 public static class Map extends Mapper<LongWritable, Text, IntWritable, Text> {
-		// Defining a local variable count of type IntWritable
-		private static IntWritable count;
-		// Defining a local variable word of type Text
-		private Text word = new Text();
+	// Defining a local variable count of type IntWritable
+	private static IntWritable count;
+	// Defining a local variable word of type Text
+	private Text word = new Text();
 
-		// Mapper
-		@Override
-		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-			// Converting the record (single line) to String and storing it in a String
-			// variable line
-			String line = value.toString();
-			// StringTokenizer is breaking the record (line) into words
-			StringTokenizer tokenizer = new StringTokenizer(line);
-			// iterating through all the words available in that line and forming the key
-			// value pair
-			while (tokenizer.hasMoreTokens()) {
-				String thisH = tokenizer.nextToken();
-				// finding the length of each token(word)
-				count = new IntWritable(thisH.length());
-				word.set(thisH);
-				// Sending to output collector which in turn passes the same to reducer
-				// So in this case the output from mapper will be the length of a word and that
-				// word
-				context.write(count, word);
-			}
+	// Mapper
+	@Override
+	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+		// Converting the record (single line) to String and storing it in a String
+		// variable line
+		String line = value.toString();
+		// StringTokenizer is breaking the record (line) into words
+		StringTokenizer tokenizer = new StringTokenizer(line);
+		// iterating through all the words available in that line and forming the key
+		// value pair
+		while (tokenizer.hasMoreTokens()) {
+			String thisH = tokenizer.nextToken();
+			// finding the length of each token(word)
+			count = new IntWritable(thisH.length());
+			word.set(thisH);
+			// Sending to output collector which in turn passes the same to reducer
+			// So in this case the output from mapper will be the length of a word and that
+			// word
+			context.write(count, word);
 		}
 	}
+}
 ```
 
 Reducer:
 
 ```java
-// Reducer
-	public static class Reduce extends Reducer<IntWritable, Text, IntWritable, IntWritable> {
-		@Override
-		public void reduce(IntWritable key, Iterable<Text> values, Context context)
-				throws IOException, InterruptedException {
-			// Defining a local variable sum of type int
-			int sum = 0;
-			/*
-			 * Iterates through all the values available with a key and add them together
-			 * and give the final result as the key and sum of its values.
-			 */
-			for (Text x : values) {
-				sum++;
-			}
-			// Dumping the output
-			context.write(key, new IntWritable(sum));
+public static class Reduce extends Reducer<IntWritable, Text, IntWritable, IntWritable> {
+	@Override
+	public void reduce(IntWritable key, Iterable<Text> values, Context context)
+			throws IOException, InterruptedException {
+		// Defining a local variable sum of type int
+		int sum = 0;
+		/*
+			* Iterates through all the values available with a key and add them together
+			* and give the final result as the key and sum of its values.
+			*/
+		for (Text x : values) {
+			sum++;
 		}
+		// Dumping the output
+		context.write(key, new IntWritable(sum));
 	}
+}
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem02).
@@ -281,7 +280,7 @@ Copy the input file from the local file system to the HDFS:
 hadoop dfs -put input/WordSize.txt /bai2
 ```
 
-![Problem 02: Copy input file to HDFS](images/problem02/input.png)
+![Problem 02: Copy input file to HDFS](images/problem02/input.PNG)
 
 > > Create jar file and copy it into user home
 
@@ -291,11 +290,11 @@ Run the MapReduce job:
 hadoop jar WordSize.jar hadoop.WordSizeWordCount /bai2 /output
 ```
 
-![Problem 02: Run MapReduce job](images/problem02/process1.png)
+![Problem 02: Run MapReduce job](images/problem02/process1.PNG)
 
-![Problem 02: MapReduce job output](images/problem02/process2.png)
+![Problem 02: MapReduce job output](images/problem02/process2.PNG)
 
-![Problem 02: Output](images/problem02/output.png)
+![Problem 02: Output](images/problem02/output.PNG)
 
 ## Problem 03: Weather Data
 
@@ -349,65 +348,65 @@ Mapper:
 
 ```java
 public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
-        @Override
-        public void map(LongWritable arg0, Text Value,
-                        OutputCollector<Text, Text> output, Reporter arg3)
-                throws IOException {
-            String line = Value.toString();
-            // Example of Input
-            // Date Max Min
-            // 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
-            String date = line.substring(6, 14);
-            float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
-            float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
-            if (temp_Max > 40.0) {
+	@Override
+	public void map(LongWritable arg0, Text Value,
+					OutputCollector<Text, Text> output, Reporter arg3)
+			throws IOException {
+		String line = Value.toString();
+		// Example of Input
+		// Date Max Min
+		// 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
+		String date = line.substring(6, 14);
+		float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
+		float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
+		if (temp_Max > 40.0) {
 // Hot day
-                output.collect(new Text("Hot Day " + date),
-                        new Text(String.valueOf(temp_Max)));
-            }
-            if (temp_Min < 10) {
+			output.collect(new Text("Hot Day " + date),
+					new Text(String.valueOf(temp_Max)));
+		}
+		if (temp_Min < 10) {
 // Cold day
-                output.collect(new Text("Cold Day " + date),
-                        new Text(String.valueOf(temp_Min)));
-            }
-        }
-    }public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
-        @Override
-        public void map(LongWritable arg0, Text Value,
-                        OutputCollector<Text, Text> output, Reporter arg3)
-                throws IOException {
-            String line = Value.toString();
-            // Example of Input
-            // Date Max Min
-            // 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
-            String date = line.substring(6, 14);
-            float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
-            float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
-            if (temp_Max > 40.0) {
-// Hot day
-                output.collect(new Text("Hot Day " + date),
-                        new Text(String.valueOf(temp_Max)));
-            }
-            if (temp_Min < 10) {
-// Cold day
-                output.collect(new Text("Cold Day " + date),
-                        new Text(String.valueOf(temp_Min)));
-            }
-        }
-    }
+			output.collect(new Text("Cold Day " + date),
+					new Text(String.valueOf(temp_Min)));
+		}
+	}
+}public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
+	@Override
+	public void map(LongWritable arg0, Text Value,
+					OutputCollector<Text, Text> output, Reporter arg3)
+			throws IOException {
+		String line = Value.toString();
+		// Example of Input
+		// Date Max Min
+		// 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
+		String date = line.substring(6, 14);
+		float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
+		float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
+		if (temp_Max > 40.0) {
+			// Hot day
+			output.collect(new Text("Hot Day " + date),
+					new Text(String.valueOf(temp_Max)));
+		}
+		if (temp_Min < 10) {
+			// Cold day
+			output.collect(new Text("Cold Day " + date),
+					new Text(String.valueOf(temp_Min)));
+		}
+	}
+}
 ```
 
 Reducer:
 
 ```java
-    public static class MaxTemperatureReducer extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
-        @Override
-        public void reduce(Text Key, Iterator<Text> Values, OutputCollector<Text, Text> output, Reporter arg3) throws IOException {
-// Find Max temp yourself ?
-            String temperature = Values.next().toString();
-            output.collect(Key, new Text(temperature));
-        }
-    }
+public static class MaxTemperatureReducer extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
+	@Override
+	public void reduce(Text Key, Iterator<Text> Values, OutputCollector<Text, Text> output, Reporter arg3) throws IOException {
+		// Find Max temp yourself ?
+		String temperature = Values.next().toString();
+		output.collect(Key, new Text(temperature));
+	}
+}
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem03).
@@ -436,7 +435,7 @@ Copy the input file from the local file system to the HDFS:
 hadoop dfs -put home/20120573_npt/weather_data.txt /bai3
 ```
 
-![Problem 03: Copy input file to HDFS](images/problem03/input.png)
+![Problem 03: Copy input file to HDFS](images/problem03/input.PNG)
 
 > > Create a jar file and copy it into user home
 
@@ -446,11 +445,11 @@ Run the MapReduce job:
 hadoop jar WeatherData.jar hadoop.WeatherData /bai3 /output3
 ```
 
-![Problem 03: Run MapReduce job](images/problem03/process1.png)
+![Problem 03: Run MapReduce job](images/problem03/process1.PNG)
 
-![Problem 03: MapReduce job output](images/problem03/process2.png)
+![Problem 03: MapReduce job output](images/problem03/process2.PNG)
 
-![Problem 03: Output](images/problem03/output.png)
+![Problem 03: Output](images/problem03/output.PNG)
 
 ## Problem 04: Patent Program
 
@@ -912,50 +911,50 @@ Mapper:
 
 ```java
 public static class UniqueListenersMapper extends
-            Mapper<Object, Text, IntWritable, IntWritable> {
+		Mapper<Object, Text, IntWritable, IntWritable> {
 
-        IntWritable trackId = new IntWritable();
-        IntWritable userId = new IntWritable();
+	IntWritable trackId = new IntWritable();
+	IntWritable userId = new IntWritable();
 
-        public void map(Object key, Text value,
-                        Mapper<Object, Text, IntWritable, IntWritable>.Context context)
-                throws IOException, InterruptedException {
+	public void map(Object key, Text value,
+					Mapper<Object, Text, IntWritable, IntWritable>.Context context)
+			throws IOException, InterruptedException {
 
-            String[] parts = value.toString().split("[|]");
-            trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID]));
-            userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID]));
+		String[] parts = value.toString().split("[|]");
+		trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID]));
+		userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID]));
 
-            if (parts.length == 5) {
-                context.write(trackId, userId);
-            } else {
-                // add counter for invalid records
-                context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
-            }
+		if (parts.length == 5) {
+			context.write(trackId, userId);
+		} else {
+			// add counter for invalid records
+			context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
+		}
 
-        }
-    }
+	}
+}
 ```
 
 Reducer:
 
 ```java
-    public static class UniqueListenersReducer extends
-            Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
+public static class UniqueListenersReducer extends
+		Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
 
-        public void reduce(
-                IntWritable trackId,
-                Iterable<IntWritable> userIds,
-                Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
-                throws IOException, InterruptedException {
+	public void reduce(
+			IntWritable trackId,
+			Iterable<IntWritable> userIds,
+			Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
+			throws IOException, InterruptedException {
 
-            Set<Integer> userIdSet = new HashSet<Integer>();
-            for (IntWritable userId : userIds) {
-                userIdSet.add(userId.get());
-            }
-            IntWritable size = new IntWritable(userIdSet.size());
-            context.write(trackId, size);
-        }
-    }
+		Set<Integer> userIdSet = new HashSet<Integer>();
+		for (IntWritable userId : userIds) {
+			userIdSet.add(userId.get());
+		}
+		IntWritable size = new IntWritable(userIdSet.size());
+		context.write(trackId, size);
+	}
+}
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem08).
@@ -984,7 +983,7 @@ Copy the input file from the local file system to the HDFS:
 hadoop dfs -put home/20120573_NPT/bai8.txt /bai8
 ```
 
-![Problem 08: Copy input file to HDFS](images/problem08/input.png)
+![Problem 08: Copy input file to HDFS](images/problem08/input.PNG)
 
 Create a jar file and copy it into user home
 
@@ -994,11 +993,11 @@ Run the MapReduce job:
 hadoop jar UniqueListeners.jar hadoop.UniqueListeners /bai8 /output8
 ```
 
-![Problem 08: Run MapReduce job](images/problem08/process1.png)
+![Problem 08: Run MapReduce job](images/problem08/process1.PNG)
 
-![Problem 08: MapReduce job output](images/problem08/process2.png)
+![Problem 08: MapReduce job output](images/problem08/process2.PNG)
 
-![Problem 08: Output](images/problem08/output.png)
+![Problem 08: Output](images/problem08/output.PNG)
 
 ## Problem 09: Telecom Call Data Record Program
 
