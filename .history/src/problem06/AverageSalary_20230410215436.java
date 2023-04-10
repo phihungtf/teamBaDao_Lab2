@@ -49,9 +49,9 @@ public class AverageSalary {
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "Average Salary");
     job.setJarByClass(AverageSalary.class);
-    job.setMapperClass(Map.class);
-    job.setCombinerClass(Reduce.class);
-    job.setReducerClass(Reduce.class);
+    job.setMapperClass(avgMapper.class);
+    job.setCombinerClass(avgReducer.class);
+    job.setReducerClass(avgReducer.class);
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
     job.setOutputKeyClass(Text.class);
@@ -60,8 +60,6 @@ public class AverageSalary {
     Path p1 = new Path(args[1]);
     FileInputFormat.addInputPath(job, p);
     FileOutputFormat.setOutputPath(job, p1);
-    Path outputPath = new Path(args[1]);
-    outputPath.getFileSystem(conf).delete(outputPath);
     job.waitForCompletion(true);
   }
 }

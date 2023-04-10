@@ -33,11 +33,11 @@ public class Patent {
   public static class Reduce extends Reducer<Text, Text, Text, IntWritable> {
     public void reduce(Text key, Iterable<Text> values, Context context)
         throws IOException, InterruptedException {
-      int count = 0;
-      for (Text value : values) {
-        count++;
+      int sum = 0;
+      for (Text x : values) {
+        sum++;
       }
-      context.write(key, new IntWritable(count));
+      context.write(key, new IntWritable(sum));
     }
   }
 

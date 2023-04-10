@@ -34,10 +34,10 @@ public class Patent {
     public void reduce(Text key, Iterable<Text> values, Context context)
         throws IOException, InterruptedException {
       int count = 0;
-      for (Text value : values) {
+      for (Text x : values) {
         count++;
       }
-      context.write(key, new IntWritable(count));
+      context.write(key, new IntWritable(sum));
     }
   }
 

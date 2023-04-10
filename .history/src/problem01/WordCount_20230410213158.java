@@ -20,9 +20,9 @@ public class WordCount {
 
     public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
       String line = value.toString();
-      StringTokenizer tokenizer = new StringTokenizer(line);
-      while (tokenizer.hasMoreTokens()) {
-        word.set(tokenizer.nextToken());
+      StringTokenizer token = new StringTokenizer(line);
+      while (token.hasMoreTokens()) {
+        word.set(token.nextToken());
         context.write(word, new IntWritable(1));
       }
     }
@@ -31,11 +31,11 @@ public class WordCount {
   public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
     public void reduce(Text key, Iterable<IntWritable> values, Context context)
         throws IOException, InterruptedException {
-      int count = 0;
+      int sum = 0;
       for (IntWritable val : values) {
-        count += val.get();
+        sum += val.get();
       }
-      context.write(key, new IntWritable(count));
+      context.write(key, new IntWritable(sum));
     }
   }
 
@@ -52,8 +52,6 @@ public class WordCount {
     job.setOutputFormatClass(TextOutputFormat.class);
     FileInputFormat.addInputPath(job, new Path(args[0]));
     FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    Path outputPath = new Path(args[1]);
-    outputPath.getFileSystem(conf).delete(outputPath);
     job.waitForCompletion(true);
   }
 }

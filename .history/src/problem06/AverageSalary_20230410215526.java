@@ -49,9 +49,9 @@ public class AverageSalary {
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "Average Salary");
     job.setJarByClass(AverageSalary.class);
-    job.setMapperClass(Map.class);
-    job.setCombinerClass(Reduce.class);
-    job.setReducerClass(Reduce.class);
+    job.setMapperClass(avgMapper.class);
+    job.setCombinerClass(avgReducer.class);
+    job.setReducerClass(avgReducer.class);
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
     job.setOutputKeyClass(Text.class);

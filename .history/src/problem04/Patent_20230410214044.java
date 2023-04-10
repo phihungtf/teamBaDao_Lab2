@@ -15,17 +15,16 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class Patent {
   public static class Map extends Mapper<LongWritable, Text, Text, Text> {
-    Text keyText = new Text();
-    Text valueText = new Text();
+    Text k = new Text();
+    Text v = new Text();
 
     public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
       String line = value.toString();
       StringTokenizer tokenizer = new StringTokenizer(line, " ");
-      // get each pair in 1 line
       while (tokenizer.hasMoreTokens()) {
-        keyText.set(tokenizer.nextToken());
-        valueText.set(tokenizer.nextToken());
-        context.write(keyText, valueText);
+        k.set(tokenizer.nextToken());
+        v.set(tokenizer.nextToken());
+        context.write(k, v);
       }
     }
   }
@@ -33,11 +32,11 @@ public class Patent {
   public static class Reduce extends Reducer<Text, Text, Text, IntWritable> {
     public void reduce(Text key, Iterable<Text> values, Context context)
         throws IOException, InterruptedException {
-      int count = 0;
-      for (Text value : values) {
-        count++;
+      int sum = 0;
+      for (Text x : values) {
+        sum++;
       }
-      context.write(key, new IntWritable(count));
+      context.write(key, new IntWritable(sum));
     }
   }
 

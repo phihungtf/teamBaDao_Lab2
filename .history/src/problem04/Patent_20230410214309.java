@@ -37,7 +37,7 @@ public class Patent {
       for (Text value : values) {
         count++;
       }
-      context.write(key, new IntWritable(count));
+      context.write(key, new IntWritable(sum));
     }
   }
 
