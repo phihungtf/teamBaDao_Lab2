@@ -149,7 +149,310 @@ hadoop jar WordCount.jar WordCount /WordCount/input /WordCount/output
 
 ![Problem 01: Output](images/problem01/output.png)
 
-## Problem 04: Patent
+## Problem 02: WordSizeWordCount Program
+
+In this section, we will try to solve a problem: WordSizeWordCount. The purpose of this problem is caculate the size of each word and count the number of words of that size in the text file
+
+Here is an example of the input file:
+
+```text
+Hello everyone this is a sample dataset. Calculate the word size and count the number of words of that size in this text file
+```
+
+Idea: Split each word in file input and caculate its length, length of the word is a key and word is a value.
+After that, caculate each appreance each length
+
+The program will be have three main components: Mapper, Reducer, and Driver
+
+The Mapper class is responsible for taking the input data and converting it into key-value pair. More specifically, it takes each word and caculate its length, output will be the length of the word as the key and the word itself as a value
+
+| key | value     |
+| --- | --------- |
+| 5   | Hello     |
+| 8   | everyone  |
+| 4   | this      |
+| 2   | is        |
+| 1   | a         |
+| 6   | sample    |
+| 8   | dataset.  |
+| 9   | Calculate |
+| 3   | the       |
+| ... | ...       |
+| 4   | file      |
+
+The Reducer class takes ouput from the Mapper and performs the actual word count by aggregating all the values for a given key (which is the length of the word). The output of the Reducer is the length of the word as a key and the total count of words with that lenght as a value
+
+| key | value |
+| --- | ----- |
+| 1   | 1     |
+| 2   | 4     |
+| 3   | 3     |
+| 4   | 8     |
+| 5   | 3     |
+| 6   | 2     |
+| 8   | 2     |
+| 9   | 1     |
+
+The Driver class sets up the configuration of the MapReduce job by specifying the input and output paths, the Mapper and Reducer classes to be used, and the input and output data formats.
+
+**Implementation with MapReduce**
+
+We can implement this problem with MapReduce. The mapper will split the input into key and value. The reducer will sum up the values of each key.
+
+Mapper:
+
+```java
+public static class Map extends Mapper<LongWritable, Text, IntWritable, Text> {
+		// Defining a local variable count of type IntWritable
+		private static IntWritable count;
+		// Defining a local variable word of type Text
+		private Text word = new Text();
+
+		// Mapper
+		@Override
+		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+			// Converting the record (single line) to String and storing it in a String
+			// variable line
+			String line = value.toString();
+			// StringTokenizer is breaking the record (line) into words
+			StringTokenizer tokenizer = new StringTokenizer(line);
+			// iterating through all the words available in that line and forming the key
+			// value pair
+			while (tokenizer.hasMoreTokens()) {
+				String thisH = tokenizer.nextToken();
+				// finding the length of each token(word)
+				count = new IntWritable(thisH.length());
+				word.set(thisH);
+				// Sending to output collector which in turn passes the same to reducer
+				// So in this case the output from mapper will be the length of a word and that
+				// word
+				context.write(count, word);
+			}
+		}
+	}
+```
+
+Reducer:
+
+```java
+// Reducer
+	public static class Reduce extends Reducer<IntWritable, Text, IntWritable, IntWritable> {
+		@Override
+		public void reduce(IntWritable key, Iterable<Text> values, Context context)
+				throws IOException, InterruptedException {
+			// Defining a local variable sum of type int
+			int sum = 0;
+			/*
+			 * Iterates through all the values available with a key and add them together
+			 * and give the final result as the key and sum of its values.
+			 */
+			for (Text x : values) {
+				sum++;
+			}
+			// Dumping the output
+			context.write(key, new IntWritable(sum));
+		}
+	}
+```
+
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem02).
+
+Here is the directory structure of the project:
+
+```
+📦problem02
+ ┣ 📂output
+ ┣ 📂input
+ ┃  ┗ 📜WordSize.txt
+ ┗ 📜WordSizeWordCount.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hadoop dfs -mkdir /bai2
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hadoop dfs -put input/WordSize.txt /bai2
+```
+
+![Problem 02: Copy input file to HDFS](images/problem02/input.png)
+
+> > Create jar file and copy it into user home
+
+Run the MapReduce job:
+
+```bash
+hadoop jar WordSize.jar hadoop.WordSizeWordCount /bai2 /output
+```
+
+![Problem 02: Run MapReduce job](images/problem02/process1.png)
+
+![Problem 02: MapReduce job output](images/problem02/process2.png)
+
+![Problem 02: Output](images/problem02/output.png)
+
+## Problem 03: Weather Data
+
+In this section, we will try to solve a problem: Weather Data. The purpose of this problem is find out the dates with maximum temperature greater than 40(A Hot Day) and minimum temperature lower than 10(A Cold Day).
+
+Idea: Extract date from the line using the substring method as well as maximum temperature(compare with 40) and minimum temperature(compare with 10)
+
+Here is an example of the input file:
+
+```text
+23907 20150101  2.423  -98.08   30.62     2.2    -0.6     0.8     0.9     6.2     1.47 C     3.7     1.1     2.5    99.9    85.4    97.2   0.369   0.308 -99.000 -99.000 -99.000     7.0     8.1 -9999.0 -9999.0 -9999.0
+23907 20150102  2.423  -98.08   30.62     3.5     1.3     2.4     2.2     9.0     1.43 C     4.9     2.3     3.1   100.0    98.8    99.8   0.391   0.327 -99.000 -99.000 -99.000     7.1     7.9 -9999.0 -9999.0 -9999.0
+23907 20150103  2.423  -98.08   30.62    15.9     2.3     9.1     7.5     2.9    11.00 C    16.4     2.9     7.3   100.0    34.8    73.7   0.450   0.397 -99.000 -99.000 -99.000     7.6     7.9 -9999.0 -9999.0 -9999.0
+23907 20150104  2.423  -98.08   30.62     9.2    -1.3     3.9     4.2     0.0    13.24 C    12.4    -0.5     4.9    82.0    40.6    61.7   0.414   0.352 -99.000 -99.000 -99.000     7.3     7.9 -9999.0 -9999.0 -9999.0
+23907 20150105  2.423  -98.08   30.62    10.9    -3.7     3.6     2.6     0.0    13.37 C    14.7    -3.0     3.8    77.9    33.3    57.4   0.399   0.340 -99.000 -99.000 -99.000     6.3     7.0 -9999.0 -9999.0 -9999.0
+23907 20150106  2.423  -98.08   30.62    20.2     2.9    11.6    10.9     0.0    12.90 C    22.0     1.6     9.9    67.7    30.2    49.3   0.395   0.335 -99.000 -99.000 -99.000     8.0     8.0 -9999.0 -9999.0 -9999.0
+23907 20150107  2.423  -98.08   30.62    10.9    -3.4     3.8     4.5     0.0    12.68 C    12.4    -2.1     5.5    82.7    36.5    55.7   0.387   0.328 -99.000 -99.000 -99.000     7.6     8.3 -9999.0 -9999.0 -9999.0
+23907 20150108  2.423  -98.08   30.62     0.6    -7.9    -3.6    -3.3     0.0     4.98 C     3.9    -4.8    -0.5    57.7    37.6    48.1   0.372   0.316 -99.000 -99.000 -99.000     4.7     6.1 -9999.0 -9999.0 -9999.0
+23907 20150109  2.423  -98.08   30.62     2.0     0.1     1.0     0.8     0.0     2.52 C     4.1     1.2     2.5    87.8    48.9    64.4   0.368   0.312 -99.000 -99.000 -99.000     5.4     6.2 -9999.0 -9999.0 -9999.0
+23907 20150110  2.423  -98.08   30.62     0.5    -2.0    -0.8    -0.6     3.3     2.11 C     2.5    -0.1     1.4    99.9    47.7    85.8   0.373   0.314 -99.000 -99.000 -99.000     5.1     6.0 -9999.0 -9999.0 -9999.0
+23907 20150111  2.423  -98.08   30.62    10.9     0.0     5.4     4.4     2.9     6.38 C    12.7     1.3     5.8   100.0    77.8    97.1   0.420   0.362 -99.000 -99.000 -99.000     6.5     6.7 -9999.0 -9999.0 -9999.0
+23907 20150112  2.423  -98.08   30.62     6.5     1.4     4.0     4.3     0.0     1.55 C     6.9     2.7     5.1   100.0    89.4    97.8   0.412   0.350 -99.000 -99.000 -99.000     7.3     7.5 -9999.0 -9999.0 -9999.0
+23907 20150113  2.423  -98.08   30.62     3.0    -0.7     1.1     1.2     0.0     3.26 C     5.6     0.7     2.9    99.7    80.7    90.7   0.401   0.337 -99.000 -99.000 -99.000     6.1     6.8 -9999.0 -9999.0 -9999.0
+23907 20150114  2.423  -98.08   30.62     2.9     0.9     1.9     1.8     0.0     1.88 C     4.7     2.0     3.1    99.6    90.8    97.9   0.395   0.331 -99.000 -99.000 -99.000     6.1     6.7 -9999.0 -9999.0 -9999.0
+23907 20150115  2.423  -98.08   30.62    13.2     1.2     7.2     6.4     0.0    13.37 C    16.4     1.4     6.7    98.9    46.7    73.4   0.395   0.333 -99.000 -99.000 -99.000     6.7     7.0 -9999.0 -9999.0 -9999.0
+23907 20150116  2.423  -98.08   30.62    16.7     3.5    10.1     9.9     0.0    13.68 C    19.2     1.3     8.7    80.2    38.1    58.2   0.391   0.330 -99.000 -99.000 -99.000     7.3     7.4 -9999.0 -9999.0 -9999.0
+```
+
+To solve this problem, we easily split the input into two parts: key and the number of occurrences of the key. The result is as follows:
+
+Assume that we have a input file like that:
+
+```text
+25380 20130101 20.0 -10.0 25.0 18.0 12.0 16.0 17.0 19.0 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
+25381 20130102 15.0 -20.0 22.0 14.0 10.0 12.0 13.0 14.0 0.02 C 1.0 -0.1 0.4 97.3 36.0 69.4
+25382 20130103 30.0 -5.0 35.0 28.0 20.0 25.0 27.0 29.0 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
+```
+
+The result will be:
+
+```text
+Cold Day 20130102	-20.0
+Hot Day 20130103	30.0
+```
+
+**Implementation with MapReduce**
+
+We can implement this problem with MapReduce. The mapper will split the input into two parts: key and value. The reducer will count the number of occurrences of each key.
+
+Mapper:
+
+```java
+public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
+        @Override
+        public void map(LongWritable arg0, Text Value,
+                        OutputCollector<Text, Text> output, Reporter arg3)
+                throws IOException {
+            String line = Value.toString();
+            // Example of Input
+            // Date Max Min
+            // 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
+            String date = line.substring(6, 14);
+            float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
+            float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
+            if (temp_Max > 40.0) {
+// Hot day
+                output.collect(new Text("Hot Day " + date),
+                        new Text(String.valueOf(temp_Max)));
+            }
+            if (temp_Min < 10) {
+// Cold day
+                output.collect(new Text("Cold Day " + date),
+                        new Text(String.valueOf(temp_Min)));
+            }
+        }
+    }public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
+        @Override
+        public void map(LongWritable arg0, Text Value,
+                        OutputCollector<Text, Text> output, Reporter arg3)
+                throws IOException {
+            String line = Value.toString();
+            // Example of Input
+            // Date Max Min
+            // 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
+            String date = line.substring(6, 14);
+            float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
+            float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
+            if (temp_Max > 40.0) {
+// Hot day
+                output.collect(new Text("Hot Day " + date),
+                        new Text(String.valueOf(temp_Max)));
+            }
+            if (temp_Min < 10) {
+// Cold day
+                output.collect(new Text("Cold Day " + date),
+                        new Text(String.valueOf(temp_Min)));
+            }
+        }
+    }
+```
+
+Reducer:
+
+```java
+    public static class MaxTemperatureReducer extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
+        @Override
+        public void reduce(Text Key, Iterator<Text> Values, OutputCollector<Text, Text> output, Reporter arg3) throws IOException {
+// Find Max temp yourself ?
+            String temperature = Values.next().toString();
+            output.collect(Key, new Text(temperature));
+        }
+    }
+```
+
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem03).
+
+Here is the directory structure of the project:
+
+```
+📦problem03
+ ┣ 📂output
+ ┣ 📂input
+ ┃  ┗ 📜weather_data.txt
+ ┗ 📜WeatherData.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hadoop dfs -mkdir /bai3
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hadoop dfs -put home/20120573_npt/weather_data.txt /bai3
+```
+
+![Problem 03: Copy input file to HDFS](images/problem03/input.png)
+
+> > Create a jar file and copy it into user home
+
+Run the MapReduce job:
+
+```bash
+hadoop jar WeatherData.jar hadoop.WeatherData /bai3 /output3
+```
+
+![Problem 03: Run MapReduce job](images/problem03/process1.png)
+
+![Problem 03: MapReduce job output](images/problem03/process2.png)
+
+![Problem 03: Output](images/problem03/output.png)
+
+## Problem 04: Patent Program
 
 In this section, we will try to solve a problem: Patent. The purpose of this issue is to calculate the number of patents that each inventor has.
 
@@ -446,7 +749,7 @@ cat output/*
 
 ![Problem 05: Output files](images/problem05/output-files.png)
 
-## Problem 06: Average Salary
+## Problem 06: AverageSalary Program
 
 In this section, we will try to solve a problem: Average Salary. The purpose of this issue is to calculate the average salary of each department.
 
@@ -533,12 +836,12 @@ public static class avgReducer extends Reducer<Text, FloatWritable, Text, FloatW
 }
 ```
 
-The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem05).
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem06).
 
 Here is the directory structure of the project:
 
 ```
-📦src
+📦problem06
  ┣ 📂output
  ┣ 📂input
  ┃  ┗ 📜 file01
@@ -560,7 +863,7 @@ Copy the input file from the local file system to the HDFS:
 hadoop fs -put Input/file01 /AverageSalary/input
 ```
 
-![Problem 05: Copy input file to HDFS](images/problem06/input.png)
+![Problem 06: Copy input file to HDFS](images/problem06/input.png)
 
 Compile the `AverageSalary.java` file:
 
@@ -580,11 +883,122 @@ Run the MapReduce job:
 hadoop jar AverageSalary.jar AverageSalary /AverageSalary/input /AverageSalary/output
 ```
 
-![Problem 05: Run MapReduce job](images/problem06/AverageSalary1.png)
+![Problem 06: Run MapReduce job](images/problem06/AverageSalary1.png)
 
-![Problem 05: MapReduce job output](images/problem06/AverageSalary2.png)
+![Problem 06: MapReduce job output](images/problem06/AverageSalary2.png)
 
-![Problem 05: Output](images/problem06/output.png)
+![Problem 06: Output](images/problem06/output.png)
+
+## Problem 08: Music Track Program
+
+In this section, we will try to solve a problem: Music track. The purpose of this problem is find the number of unique listeners per track from dataset
+
+Idea: Extract the track Id(key) and user Id(value). Remove duplicate and writes a key-value pair where the key is the track Id and the value is the number of unique listeners for that track.
+
+Here is an example of the input file:
+
+```text
+111115|222|0|1|0
+111113|225|1|0|0
+111117|223|0|1|1
+111115|225|1|0|0
+```
+
+**Implementation with MapReduce**
+
+We can implement this problem with MapReduce. The mapper will split the input into key and value. The reducer will count Average Salary of each department.
+
+Mapper:
+
+```java
+public static class UniqueListenersMapper extends
+            Mapper<Object, Text, IntWritable, IntWritable> {
+
+        IntWritable trackId = new IntWritable();
+        IntWritable userId = new IntWritable();
+
+        public void map(Object key, Text value,
+                        Mapper<Object, Text, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
+
+            String[] parts = value.toString().split("[|]");
+            trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID]));
+            userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID]));
+
+            if (parts.length == 5) {
+                context.write(trackId, userId);
+            } else {
+                // add counter for invalid records
+                context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
+            }
+
+        }
+    }
+```
+
+Reducer:
+
+```java
+    public static class UniqueListenersReducer extends
+            Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
+
+        public void reduce(
+                IntWritable trackId,
+                Iterable<IntWritable> userIds,
+                Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
+
+            Set<Integer> userIdSet = new HashSet<Integer>();
+            for (IntWritable userId : userIds) {
+                userIdSet.add(userId.get());
+            }
+            IntWritable size = new IntWritable(userIdSet.size());
+            context.write(trackId, size);
+        }
+    }
+```
+
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem08).
+
+Here is the directory structure of the project:
+
+```
+📦problem08
+ ┣ 📂output
+ ┣ 📂input
+ ┃  ┗ 📜 LastFMlog.txt
+ ┗ 📜UniqueListeners.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hadoop dfs -mkdir /bai8
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hadoop dfs -put home/20120573_NPT/bai8.txt /bai8
+```
+
+![Problem 08: Copy input file to HDFS](images/problem08/input.png)
+
+Create a jar file and copy it into user home
+
+Run the MapReduce job:
+
+```bash
+hadoop jar UniqueListeners.jar hadoop.UniqueListeners /bai8 /output8
+```
+
+![Problem 08: Run MapReduce job](images/problem08/process1.png)
+
+![Problem 08: MapReduce job output](images/problem08/process2.png)
+
+![Problem 08: Output](images/problem08/output.png)
 
 ## Problem 09: Telecom Call Data Record Program
 
