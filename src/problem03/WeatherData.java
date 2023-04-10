@@ -21,42 +21,36 @@ import org.apache.hadoop.mapred.TextOutputFormat;
 public class WeatherData {
     public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
         @Override
-        public void map(LongWritable arg0, Text Value,
-                        OutputCollector<Text, Text> output, Reporter arg3)
+        public void map(LongWritable longWritable, Text text,
+                        OutputCollector<Text, Text> outputCollector, Reporter reporter)
                 throws IOException {
-            String line = Value.toString();
-            // Example of Input
-            // Date Max Min
-            // 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
-            String date = line.substring(6, 14);
-            float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
-            float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
-            if (temp_Max > 40.0) {
-// Hot day
-                output.collect(new Text("Hot Day " + date),
-                        new Text(String.valueOf(temp_Max)));
+            String line = text.toString(); // Transfer to String type
+            String date = line.substring(6, 14); // Get date data
+            float tempMax = Float.parseFloat(line.substring(39, 45).trim()); // Get maximum temperature and transfer to float type
+            float tempMin = Float.parseFloat(line.substring(47, 53).trim()); // Get minimum temperature and transfer to float type
+            if (tempMax > 40.0) { // Check
+                outputCollector.collect(new Text("Hot Day " + date),
+                        new Text(String.valueOf(tempMax)));
             }
-            if (temp_Min < 10) {
-// Cold day
-                output.collect(new Text("Cold Day " + date),
-                        new Text(String.valueOf(temp_Min)));
+            if (tempMin < 10) {
+                outputCollector.collect(new Text("Cold Day " + date),
+                        new Text(String.valueOf(tempMin))); //
             }
         }
+
     }
 
     public static class MaxTemperatureReducer extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
         @Override
-        public void reduce(Text Key, Iterator<Text> Values, OutputCollector<Text, Text> output, Reporter arg3) throws IOException {
-// Find Max temp yourself ?
-            String temperature = Values.next().toString();
-            output.collect(Key, new Text(temperature));
+        public void reduce(Text Key, Iterator<Text> iterator, OutputCollector<Text, Text> outputCollector, Reporter reporter) throws IOException {
+            String temperature = iterator.next().toString();
+            outputCollector.collect(Key, new Text(temperature));
         }
     }
 
     public static void main(String[] args) throws Exception {
         JobConf conf = new JobConf(WeatherData.class);
-        conf.setJobName("temp");
-// Note:- As Mapper's output types are not default so we have to define the following properties.
+        conf.setJobName("temperature");
         conf.setMapOutputKeyClass(Text.class);
         conf.setMapOutputValueClass(Text.class);
         conf.setMapperClass(MaxTemperatureMapper.class);
