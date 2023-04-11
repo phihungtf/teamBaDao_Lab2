@@ -449,7 +449,7 @@ hadoop jar WeatherData.jar hadoop.WeatherData /bai3 /output3
 
 ![Problem 03: MapReduce job output](images/problem03/process2.PNG)
 
-![Problem 03: Output](images/problem03/output.PNG)
+![Problem 03: Output 1](images/problem03/output1.PNG)
 
 ## Problem 04: Patent Program
 
