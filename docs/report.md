@@ -1802,4 +1802,3 @@ Here is result that we have done in this lab:
 
 [^1]: [Design patterns for efficient graph algorithms in MapReduce](https://dl.acm.org/doi/abs/10.1145/1830252.1830263)
 [^2]: [Graph Exploration with Apache Hadoop and MapReduce](https://blog.thomasjungblut.com/blogger/graph-exploration-with-hadoop-mapreduce/)
-[^3]: [Data locality in Hadoop: The Most Comprehensive Guide](https://blog.thomasjungblut.com/blogger/controlling-hadoop-job-recursion/)
