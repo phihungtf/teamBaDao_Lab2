@@ -949,7 +949,7 @@ Copy the input file from the local file system to the HDFS:
 hdfs dfs -put input/bai7.csv /bai7
 ```
 
-![Problem 07: Copy input file to HDFS](images/problem07/input.png)
+![Problem 07: Copy input file to HDFS](images/problem07/input.PNG)
 
 Compile the `DeIdentifyData.java` file:
 
@@ -969,11 +969,11 @@ Run the MapReduce job:
 hadoop jar DeIdentifyData.jar DeIdentifyData /bai7/bai7.csv /Bai7
 ```
 
-![Problem 07: Run MapReduce job](images/problem07/process1.png)
+![Problem 07: Run MapReduce job](images/problem07/process1.PNG)
 
-![Problem 07: MapReduce job output](images/problem07/process2.png)
+![Problem 07: MapReduce job output](images/problem07/process2.PNG)
 
-![Problem 07: Output](images/problem07/output.png)
+![Problem 07: Output](images/problem07/output.PNG)
 
 ## Problem 08: Music Track Program
 
@@ -1751,47 +1751,55 @@ cat output/final/*
 
 ### What have we learned?
 
-- How to set up Hadoop in a single node mode on our local machine.
-- How MapReduce works.
-- How to actually run a MapReduce job.
-- And even how to implement a MapReduce job.
+- We have learned how to solve a problem using MapReduce.
+- We have learned how to implement a MapReduce job.
+- We have learned how to use the `Counters` class to control the number of times a job is run.
+- We have learned how to use the `SequenceFileInputFormat` and `SequenceFileOutputFormat` classes to read and write data in binary format.
+- And moreover, we gained much experience with Hadoop and MapReduce while getting stuck, bugs, and errors.
 
 ### How well did we do?
 
-We did pretty well. We have successfully set up Hadoop in a single node mode on our local machine and successfully run a MapReduce job. We have also learned how MapReduce works, and how to implement a MapReduce job.
+We did really well. We have successfully completed all the tasks although many of them were very tough. But we have learned a lot from these problems and successfully solved them.
 
-Of course, nothing is easy the first time. We have encountered many many problems and got stuck for a long time. Even in the easiest step such as installing Java, we installed the wrong version of Java. And that took us a very long time to realize. So we have to reinstall and do everything from the beginning. But we have learned a lot from these problems and successfully completed the task.
+However, some members of our team have not had much experience with Hadoop and MapReduce before. So we had to look up the given solutions and try to understand them. We also had to spend a lot of time debugging and fixing bugs.
+
+Problem 10 was the most difficult one. It required us to implement multiple MapReduce jobs and use the `Counters` class to control the number of times a job is run. We had to research a lot information on the Internet and try to understand the `Message Passing` technique. But we finally managed to solve it and gained a lot of experience, which is really great.
 
 ### What could we have done better?
 
-We could have done better if we had more time to learn about Hadoop. We could have set up Hadoop in a fully distributed mode, and run a MapReduce job on a cluster of machines.
+As mentioned above, we referred to the given solutions a lot. So our solutions are very similar to the given ones. If we had more time, we could have tried to implement the solutions by ourselves.
 
 ### Self-evaluation
 
 Here is result that we have done in this lab:
 
-- [100%] Section 1: Set up Hadoop in a single node mode on our local machine.
-- [100%] Section 2: Learn how MapReduce works.
-- [100%] Section 3: Running a warm-up problem: WordCount.
-- [100%] Bonus: Running a real problem: Unhealthy relationship.
-- [0%] Bonus: Setting up Fully Distributed Mode.
+- [100%] Problem 1: WordCount Program (have referred to the given solution).
+- [100%] Problem 2: WordSizeWordCount Program (have referred to the given solution).
+- [100%] Problem 3: WeatherData Program (have referred to the given solution).
+- [100%] Problem 4: Patent Program (have referred to the given solution).
+- [100%] Problem 5: MaxTemp Program (solved by ourselves).
+- [100%] Problem 6: AverageSalary Program (have referred to the given solution).
+- [100%] Problem 7: De Identify HealthCare Program (have referred to the given solution).
+- [100%] Problem 8: Music Track Program (have referred to the given solution).
+- [100%] Problem 9: Telecom Call Data Record Program (solved by ourselves).
+- [100%] Problem 10: Count Connected Component Program (have referred to the solution of [this](https://blog.thomasjungblut.com/blogger/graph-exploration-with-hadoop-mapreduce/))
 
 ## References
 
 <!-- References without citing, this will be display as resources -->
 
-- Hadoop: Setting up a Single Node Cluster.
-  - https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/SingleCluster.html
-- MapReduce Tutorial: WordCount Example.
-  - https://hadoop.apache.org/docs/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core/MapReduceTutorial.html#Example:_WordCount_v1.0
-- MapReduce: Simplified Data Processing on Large Clusters
-  - https://www.usenix.org/events/osdi04/tech/full_papers/dean/dean.pdf
-- A Replication-Based Mechanism for Fault Tolerance in MapReduce Framework.
-  - https://www.hindawi.com/journals/mpe/2015/408921/
+- Design patterns for efficient graph algorithms in MapReduce
+  - https://dl.acm.org/doi/abs/10.1145/1830252.1830263
+- Graph Exploration with Apache Hadoop and MapReduce
+  - https://blog.thomasjungblut.com/blogger/graph-exploration-with-hadoop-mapreduce/
+- Controlling Hadoop MapReduce Job recursion
+  - https://blog.thomasjungblut.com/blogger/controlling-hadoop-job-recursion/
+- MapReduce Word Count Example
+  - https://www.javatpoint.com/mapreduce-word-count-example
 - All of StackOverflow link related.
 
 <!-- References with citing, this will be display as footnotes -->
 
 [^1]: [Design patterns for efficient graph algorithms in MapReduce](https://dl.acm.org/doi/abs/10.1145/1830252.1830263)
 [^2]: [Graph Exploration with Apache Hadoop and MapReduce](https://blog.thomasjungblut.com/blogger/graph-exploration-with-hadoop-mapreduce/)
-[^3]: [Data locality in Hadoop: The Most Comprehensive Guide](https://data-flair.training/blogs/data-locality-in-hadoop-mapreduce/)
+[^3]: [Data locality in Hadoop: The Most Comprehensive Guide](https://blog.thomasjungblut.com/blogger/controlling-hadoop-job-recursion/)
