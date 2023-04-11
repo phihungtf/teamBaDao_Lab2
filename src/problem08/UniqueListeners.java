@@ -20,10 +20,42 @@ public class UniqueListeners {
         INVALID_RECORD_COUNT
     }
 
+    public static class UniqueListenersMapper extends Mapper<Object, Text, IntWritable, IntWritable> {
+        IntWritable trackId = new IntWritable();
+        IntWritable userId = new IntWritable();
+        @Override
+        public void map(Object key, Text value,
+                        Mapper<Object, Text, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
+            String[] parts = value.toString().split("[|]"); // Split input value with regex(|)
+            trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID])); // Assign trackId
+            userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID])); // Assign userId
+            if (parts.length == 5) { // Check invalid record
+                context.write(trackId, userId);
+            } else {
+                context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
+            }
+        }
+    }
+
+    public static class UniqueListenersReducer extends
+            Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
+
+        public void reduce(IntWritable trackId, Iterable<IntWritable> userIds, Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
+            Set<Integer> userIdSet = new HashSet<Integer>();
+            for (IntWritable userId : userIds) { // Extracts the unique user IDs for a given track ID
+                userIdSet.add(userId.get());
+            }
+            IntWritable size = new IntWritable(userIdSet.size());
+            context.write(trackId, size); // Return key-value pair with trackId as a key and the number of user Id as a value
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
         if (args.length != 2) {
-            System.err.println("Usage: uniquelisteners <in> <out>");
+            System.err.println("Usage: uniqueListeners <in> <out>");
             System.exit(2);
         }
         Job job = new Job(conf, "Unique listeners per track");
@@ -41,45 +73,4 @@ public class UniqueListeners {
                 .getValue());
     }
 
-    public static class UniqueListenersReducer extends
-            Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
-
-        public void reduce(
-                IntWritable trackId,
-                Iterable<IntWritable> userIds,
-                Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
-                throws IOException, InterruptedException {
-
-            Set<Integer> userIdSet = new HashSet<Integer>();
-            for (IntWritable userId : userIds) {
-                userIdSet.add(userId.get());
-            }
-            IntWritable size = new IntWritable(userIdSet.size());
-            context.write(trackId, size);
-        }
-    }
-
-    public static class UniqueListenersMapper extends
-            Mapper<Object, Text, IntWritable, IntWritable> {
-
-        IntWritable trackId = new IntWritable();
-        IntWritable userId = new IntWritable();
-
-        public void map(Object key, Text value,
-                        Mapper<Object, Text, IntWritable, IntWritable>.Context context)
-                throws IOException, InterruptedException {
-
-            String[] parts = value.toString().split("[|]");
-            trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID]));
-            userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID]));
-
-            if (parts.length == 5) {
-                context.write(trackId, userId);
-            } else {
-                // add counter for invalid records
-                context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
-            }
-
-        }
-    }
 }

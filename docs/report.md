@@ -158,42 +158,43 @@ Here is an example of the input file:
 ```text
 Hello everyone this is a sample dataset. Calculate the word size and count the number of words of that size in this text file
 ```
+Idea: Split each word in file input and caculate its length, length of the word is a key and word is a value.After that, calculate frequency of each length of word
 
-Idea: Split each word in file input and caculate its length, length of the word is a key and word is a value.
-After that, caculate each appreance each length
-
-The program will be have three main components: Mapper, Reducer, and Driver
+The program will be have three main components: Mapper, Reducer, and Driver 
 
 The Mapper class is responsible for taking the input data and converting it into key-value pair. More specifically, it takes each word and caculate its length, output will be the length of the word as the key and the word itself as a value
 
-| key | value     |
-| --- | --------- |
-| 5   | Hello     |
-| 8   | everyone  |
-| 4   | this      |
-| 2   | is        |
-| 1   | a         |
-| 6   | sample    |
-| 8   | dataset.  |
-| 9   | Calculate |
-| 3   | the       |
-| ... | ...       |
-| 4   | file      |
+| key     | value |
+| ------- | ----- |
+| 5       | Hello    |
+| 8       | everyone     |
+| 4       | this     |
+| 2       | is     |
+| 1       | a    |
+| 6       | sample    |
+| 8       | dataset.     |
+| 9       | Calculate     |
+| 3       | the     |
+|...      |... |
+| 4       |file |
 
-The Reducer class takes ouput from the Mapper and performs the actual word count by aggregating all the values for a given key (which is the length of the word). The output of the Reducer is the length of the word as a key and the total count of words with that lenght as a value
+The Reducer class takes ouput from the Mapper and performs the actual word count by aggregating all the values for a given key (which is the length of the word). The output of the Reducer is the length of the word as a key and the total count of words with that lenght as a value 
 
-| key | value |
-| --- | ----- |
+| key     | value |
+| ------- | ----- |
 | 1   | 1     |
-| 2   | 4     |
-| 3   | 3     |
-| 4   | 8     |
-| 5   | 3     |
-| 6   | 2     |
-| 8   | 2     |
-| 9   | 1     |
+| 2 | 4     |
+| 3      | 3     |
+| 4     | 8    |
+| 5    | 3     |
+|6      | 2 |
+| 8      | 2     |
+| 9    | 1     |
+
+
 
 The Driver class sets up the configuration of the MapReduce job by specifying the input and output paths, the Mapper and Reducer classes to be used, and the input and output data formats.
+
 
 **Implementation with MapReduce**
 
@@ -203,55 +204,38 @@ Mapper:
 
 ```java
 public static class Map extends Mapper<LongWritable, Text, IntWritable, Text> {
-	// Defining a local variable count of type IntWritable
-	private static IntWritable count;
-	// Defining a local variable word of type Text
-	private Text word = new Text();
-
-	// Mapper
-	@Override
-	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-		// Converting the record (single line) to String and storing it in a String
-		// variable line
-		String line = value.toString();
-		// StringTokenizer is breaking the record (line) into words
-		StringTokenizer tokenizer = new StringTokenizer(line);
-		// iterating through all the words available in that line and forming the key
-		// value pair
-		while (tokenizer.hasMoreTokens()) {
-			String thisH = tokenizer.nextToken();
-			// finding the length of each token(word)
-			count = new IntWritable(thisH.length());
-			word.set(thisH);
-			// Sending to output collector which in turn passes the same to reducer
-			// So in this case the output from mapper will be the length of a word and that
-			// word
-			context.write(count, word);
-		}
-	}
-}
+        private static IntWritable count;
+        private Text word = new Text();
+        @Override
+        public void map(LongWritable key, Text value, Mapper<LongWritable, Text, IntWritable, Text>.Context context) throws IOException, InterruptedException {
+            String line = value.toString(); // Transfer to String type
+            StringTokenizer stringTokenizer = new StringTokenizer(line); // Split the input String into separate tokens
+            while (stringTokenizer.hasMoreTokens()) {
+                String eWord = stringTokenizer.nextToken();  // Assign eWord variable for each word
+                count = new IntWritable(eWord.length());  // Length of each word
+                word.set(eWord);
+                context.write(count, word);
+            }
+        }
+    }
 ```
 
 Reducer:
 
 ```java
 public static class Reduce extends Reducer<IntWritable, Text, IntWritable, IntWritable> {
-	@Override
-	public void reduce(IntWritable key, Iterable<Text> values, Context context)
-			throws IOException, InterruptedException {
-		// Defining a local variable sum of type int
-		int sum = 0;
-		/*
-			* Iterates through all the values available with a key and add them together
-			* and give the final result as the key and sum of its values.
-			*/
-		for (Text x : values) {
-			sum++;
-		}
-		// Dumping the output
-		context.write(key, new IntWritable(sum));
-	}
-}
+
+        @Override
+        public void reduce(IntWritable key, Iterable<Text> values, Reducer<IntWritable, Text, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
+            int sum = 0;
+            for (Text x : values) {
+                sum++; // Calculate frequency of each length of word
+            }
+            context.write(key, new IntWritable(sum));
+        }
+
+    }
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem02).
@@ -348,65 +332,36 @@ Mapper:
 
 ```java
 public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
-	@Override
-	public void map(LongWritable arg0, Text Value,
-					OutputCollector<Text, Text> output, Reporter arg3)
-			throws IOException {
-		String line = Value.toString();
-		// Example of Input
-		// Date Max Min
-		// 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
-		String date = line.substring(6, 14);
-		float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
-		float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
-		if (temp_Max > 40.0) {
-// Hot day
-			output.collect(new Text("Hot Day " + date),
-					new Text(String.valueOf(temp_Max)));
-		}
-		if (temp_Min < 10) {
-// Cold day
-			output.collect(new Text("Cold Day " + date),
-					new Text(String.valueOf(temp_Min)));
-		}
-	}
-}public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
-	@Override
-	public void map(LongWritable arg0, Text Value,
-					OutputCollector<Text, Text> output, Reporter arg3)
-			throws IOException {
-		String line = Value.toString();
-		// Example of Input
-		// Date Max Min
-		// 25380 20130101 2.514 -135.69 58.43 8.3 1.1 4.7 4.9 5.6 0.01 C 1.0 -0.1 0.4 97.3 36.0 69.4
-		String date = line.substring(6, 14);
-		float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
-		float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
-		if (temp_Max > 40.0) {
-			// Hot day
-			output.collect(new Text("Hot Day " + date),
-					new Text(String.valueOf(temp_Max)));
-		}
-		if (temp_Min < 10) {
-			// Cold day
-			output.collect(new Text("Cold Day " + date),
-					new Text(String.valueOf(temp_Min)));
-		}
-	}
-}
+        @Override
+        public void map(LongWritable longWritable, Text text,
+                        OutputCollector<Text, Text> outputCollector, Reporter reporter)
+                throws IOException {
+            String line = text.toString(); // Transfer to String type
+            String date = line.substring(6, 14); // Get date data
+            float tempMax = Float.parseFloat(line.substring(39, 45).trim()); // Get maximum temperature and transfer to float type
+            float tempMin = Float.parseFloat(line.substring(47, 53).trim()); // Get minimum temperature and transfer to float type
+            if (tempMax > 40.0) { // Check
+                outputCollector.collect(new Text("Hot Day " + date),
+                        new Text(String.valueOf(tempMax)));
+            }
+            if (tempMin < 10) {
+                outputCollector.collect(new Text("Cold Day " + date),
+                        new Text(String.valueOf(tempMin))); //
+            }
+        }
+    }
 ```
 
 Reducer:
 
 ```java
 public static class MaxTemperatureReducer extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
-	@Override
-	public void reduce(Text Key, Iterator<Text> Values, OutputCollector<Text, Text> output, Reporter arg3) throws IOException {
-		// Find Max temp yourself ?
-		String temperature = Values.next().toString();
-		output.collect(Key, new Text(temperature));
-	}
-}
+        @Override
+        public void reduce(Text Key, Iterator<Text> iterator, OutputCollector<Text, Text> outputCollector, Reporter reporter) throws IOException {
+            String temperature = iterator.next().toString();
+            outputCollector.collect(Key, new Text(temperature));
+        }
+    }
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem03).
@@ -888,6 +843,126 @@ hadoop jar AverageSalary.jar AverageSalary /AverageSalary/input /AverageSalary/o
 
 ![Problem 06: Output](images/problem06/output.png)
 
+## Problem 07: De Identify HealthCare Program
+In this section, we will try to solve a problem: De Identify HealthCare. The purpose of this problem is to perform data de-identification by encrypting specific columns in a CSV file using AES algorithm.
+
+Idea: Takes a CSV file as input, and for each row in the file, it identifies the columns to be encrypted based on a pre-defined list of column indexes, then applied ASE encryption to the values in the identified columns.
+
+Here is an example of the input file:
+
+```csv
+PatientId	Name 	DOB	Phone Number	Email_Address	SSN	Gender	Disease	weight
+11111	bbb1	12/10/1950	1230000000	bb1@xxx.com	1110000000	M	Diabetes	78
+11112	bbb2	12/10/1984	1230000000	bb2@xxx.com	1110000000	F	PCOS	67
+11113	bbb3	12/11/1940	1230000000	bb3@xxx.com	1110000000	M	Fever	90
+11114	bbb4	12/12/1950	1230000000	bb4@xxx.com	1110000000	F	Cold	88
+11115	bbb5	12/13/1960	1230000000	bb5@xxx.com	1110000000	M	"Blood 
+Pressure"	76
+11116	bbb6	12/14/1970	1230000000	bb6@xxx.com	1110000000	F	Malaria	84
+```
+
+**Implementation with MapReduce**
+
+The input record is passed as a Text object to the function, which is then converted to a String using the toString() method. 
+The function first creates a list of field numbers that need to be encrypted, based on the encryptCol array. Split the input record. The function then iterates over each field and checks whether it needs to be encrypted. If the field is in the list of encrypted fields, the encrypt function is called to encrypt the field using the encryptKey byte array. 
+After processing all fields, the newStr string is written to the output using the context.write() method, with a NullWritable key and a Text value containing the transformed record.
+
+Mapper:
+```java
+public static class Map extends Mapper<Object, Text, NullWritable, Text> {
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+            StringTokenizer itr = new StringTokenizer(value.toString(),",");
+            List<Integer> list=new ArrayList<Integer>();
+            Collections.addAll(list, Columns);
+            String newString="";
+            int counter=1;
+            while (itr.hasMoreTokens()) { // Checks whether the current column being processed is one of the columns to be encrypted, as specified in the Columns array.
+                String token=itr.nextToken();
+                if(list.contains(counter))
+                {
+                    if(newStr.length()>0)
+                        newString+=",";
+                    newString+=encrypt(token, encryptionKey); // Encrypt token and append to the "newString"
+                }
+                else
+                {
+                    if(newStr.length()>0)
+                        newString+=",";
+                    newString+=token; // The original token value is appened to the "newString"
+                }
+                counter=counter+1;
+            }
+            context.write(NullWritable.get(), new Text(newStr.toString())); 
+        }
+    }
+```
+
+Encryption
+```java
+public static String encrypt(String encryptString, byte[] key)
+    {
+        try
+        {
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+            SecretKeySpec secretKey = new SecretKeySpec(key, "AES");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            String encryptedString = Base64.encodeBase64String(cipher.doFinal(encryptString.getBytes()));
+            return encryptedString.trim();
+        }
+        catch (Exception e)
+        {
+            logger.error("Error encrypting", e);
+        }
+        return null;
+    }
+```
+
+#### help me to enter link to the source code
+
+The full source code can be found [here](.............).
+
+Here is the directory structure of the project:
+
+```
+📦src
+ ┣ 📂output
+ ┣ 📂Input
+ ┃  ┗ 📜 file01
+ ┗ 📜DeIdentifyData.java
+```
+
+Now let's actually run the MapReduce job.
+
+Create a new directory in the HDFS:
+
+```bash
+hadoop dfs -mkdir /bai7
+```
+
+Copy the input file from the local file system to the HDFS:
+
+```bash
+hadoop dfs -put home/20120573_npt/Health.csv /bai7
+```
+
+![Copy input file to HDFS](images/problem07/input.png)
+
+Create a jar file and copy it into user home
+
+Run the MapReduce job:
+
+```bash
+hadoop jar DeIdentifyData.jar hadoop.DeIdentifyData /bai7/Health.csv /Bai8
+```
+
+![Run MapReduce job](images/problem07/process1.png)
+
+![MapReduce job output](images/problem07/process2.png)
+
+![output](images/problem07/output.png)
+
+
 ## Problem 08: Music Track Program
 
 In this section, we will try to solve a problem: Music track. The purpose of this problem is find the number of unique listeners per track from dataset
@@ -907,54 +982,57 @@ Here is an example of the input file:
 
 We can implement this problem with MapReduce. The mapper will split the input into key and value. The reducer will count Average Salary of each department.
 
+Constants:
+
+```java
+public class LastFMConstants {
+    public static final int USER_ID = 0;
+    public static final int TRACK_ID = 1;
+    public static final int IS_SHARED = 2;
+    public static final int RADIO = 3;
+    public static final int IS_SKIPPED = 4;
+}
+```
+
 Mapper:
 
 ```java
-public static class UniqueListenersMapper extends
-		Mapper<Object, Text, IntWritable, IntWritable> {
-
-	IntWritable trackId = new IntWritable();
-	IntWritable userId = new IntWritable();
-
-	public void map(Object key, Text value,
-					Mapper<Object, Text, IntWritable, IntWritable>.Context context)
-			throws IOException, InterruptedException {
-
-		String[] parts = value.toString().split("[|]");
-		trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID]));
-		userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID]));
-
-		if (parts.length == 5) {
-			context.write(trackId, userId);
-		} else {
-			// add counter for invalid records
-			context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
-		}
-
-	}
-}
+public static class UniqueListenersMapper extends Mapper<Object, Text, IntWritable, IntWritable> {
+        IntWritable trackId = new IntWritable();
+        IntWritable userId = new IntWritable();
+        @Override
+        public void map(Object key, Text value,
+                        Mapper<Object, Text, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
+            String[] parts = value.toString().split("[|]"); // Split input value with regex(|)
+            trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID])); // Assign trackId
+            userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID])); // Assign userId
+            if (parts.length == 5) { // Check invalid record
+                context.write(trackId, userId);
+            } else {
+                context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
+            }
+        }
+    }
 ```
 
 Reducer:
 
 ```java
-public static class UniqueListenersReducer extends
-		Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
+    public static class UniqueListenersReducer extends
+            Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
 
-	public void reduce(
-			IntWritable trackId,
-			Iterable<IntWritable> userIds,
-			Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
-			throws IOException, InterruptedException {
-
-		Set<Integer> userIdSet = new HashSet<Integer>();
-		for (IntWritable userId : userIds) {
-			userIdSet.add(userId.get());
-		}
-		IntWritable size = new IntWritable(userIdSet.size());
-		context.write(trackId, size);
-	}
-}
+        public void reduce(IntWritable trackId, Iterable<IntWritable> userIds, Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
+                throws IOException, InterruptedException {
+            Set<Integer> userIdSet = new HashSet<Integer>();
+            for (IntWritable userId : userIds) { // Extracts the unique user IDs for a given track ID
+                userIdSet.add(userId.get());
+            }
+            IntWritable size = new IntWritable(userIdSet.size());
+            context.write(trackId, size); // Return key-value pair with trackId as a key and the number of user Id as a value
+        }
+    }
+```
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem08).
