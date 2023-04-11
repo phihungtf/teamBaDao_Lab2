@@ -14,22 +14,22 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class AverageSalary {
-  public static class avgMapper extends Mapper<Object, Text, Text, FloatWritable> {
-    private Text dept_id = new Text();
+  public static class Map extends Mapper<Object, Text, Text, FloatWritable> {
+    private Text id = new Text();
     private FloatWritable salary = new FloatWritable();
 
     public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
       String line = value.toString();
       StringTokenizer itr = new StringTokenizer(line, ",");
       while (itr.hasMoreTokens()) {
-        dept_id.set(itr.nextToken());
+        id.set(itr.nextToken());
         salary = new FloatWritable(Float.parseFloat(itr.nextToken()));
-        context.write(dept_id, salary);
+        context.write(id, salary);
       }
     }
   }
 
-  public static class avgReducer extends Reducer<Text, FloatWritable, Text, FloatWritable> {
+  public static class Reduce extends Reducer<Text, FloatWritable, Text, FloatWritable> {
     private FloatWritable result = new FloatWritable();
 
     public void reduce(Text key, Iterable<FloatWritable> values, Context context)
@@ -49,9 +49,9 @@ public class AverageSalary {
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "Average Salary");
     job.setJarByClass(AverageSalary.class);
-    job.setMapperClass(avgMapper.class);
-    job.setCombinerClass(avgReducer.class);
-    job.setReducerClass(avgReducer.class);
+    job.setMapperClass(Map.class);
+    job.setCombinerClass(Reduce.class);
+    job.setReducerClass(Reduce.class);
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
     job.setOutputKeyClass(Text.class);
@@ -60,6 +60,8 @@ public class AverageSalary {
     Path p1 = new Path(args[1]);
     FileInputFormat.addInputPath(job, p);
     FileOutputFormat.setOutputPath(job, p1);
+    Path outputPath = new Path(args[1]);
+    outputPath.getFileSystem(conf).delete(outputPath);
     job.waitForCompletion(true);
   }
 }
