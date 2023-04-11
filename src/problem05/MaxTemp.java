@@ -14,6 +14,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 public class MaxTemp {
 	// mapper
 	public static class MaxTempMapper extends Mapper<LongWritable, Text, IntWritable, FloatWritable> {
+		@Override
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			// get the necessary fields from the input record
 			String[] fields = value.toString().split("\\s+");
@@ -28,6 +29,7 @@ public class MaxTemp {
 
 	// reducer
 	public static class MaxTempReducer extends Reducer<IntWritable, FloatWritable, IntWritable, FloatWritable> {
+		@Override
 		public void reduce(IntWritable key, Iterable<FloatWritable> values, Context context) throws IOException, InterruptedException {
 			// find the maximum temperature
 			float maxTemp = Float.MIN_VALUE;

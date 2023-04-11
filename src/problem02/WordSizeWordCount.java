@@ -1,10 +1,9 @@
-package com.hadoop.hadoop;
-
 import java.io.IOException;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -48,7 +47,7 @@ public class WordSizeWordCount {
     }
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
-        Job job = new Job(conf, "WordSize");
+        Job job =Job.getInstance(conf, "WordSize");
         job.setJarByClass(WordSizeWordCount.class);
         job.setMapperClass(Map.class);
         job.setReducerClass(Reduce.class);
@@ -58,10 +57,15 @@ public class WordSizeWordCount {
         job.setOutputValueClass(IntWritable.class);
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
-        Path outputPath = new Path(args[1]);
+
+		// if the output path already exists, delete it
+		Path outputPath = new Path(args[1]);
+		FileSystem fs = FileSystem.get(conf);
+		if (fs.exists(outputPath)) {
+			fs.delete(outputPath, true);
+		}
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
-        outputPath.getFileSystem(conf).delete(outputPath);
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }

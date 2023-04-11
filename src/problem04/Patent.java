@@ -1,7 +1,7 @@
 import java.io.IOException;
 import java.util.StringTokenizer;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -69,15 +69,16 @@ public class Patent {
     job.setInputFormatClass(TextInputFormat.class);
 
     job.setOutputFormatClass(TextOutputFormat.class);
-    // setting the second argument as a path in a path variable
-    Path outputPath = new Path(args[1]);
+	// if the output path already exists, delete it
+	Path outputPath = new Path(args[1]);
+	FileSystem fs = FileSystem.get(conf);
+	if (fs.exists(outputPath)) {
+		fs.delete(outputPath, true);
+	}
     // Configuring the input/output path from the filesystem into the job
     FileInputFormat.addInputPath(job, new Path(args[0]));
 
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    // deleting the output path automatically from hdfs so that we don't have delete
-    // it explicitly
-    outputPath.getFileSystem(conf).delete(outputPath);
+    FileOutputFormat.setOutputPath(job, outputPath);
     // exiting the job only if the flag value becomes false
     System.exit(job.waitForCompletion(true) ? 0 : 1);
   }

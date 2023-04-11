@@ -2,7 +2,7 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -58,10 +58,12 @@ public class AverageSalary {
     job.setOutputValueClass(FloatWritable.class);
     Path p = new Path(args[0]);
     Path p1 = new Path(args[1]);
+	FileSystem fs = FileSystem.get(conf);
+	if (fs.exists(p1)) {
+		fs.delete(p1, true);
+	}
     FileInputFormat.addInputPath(job, p);
     FileOutputFormat.setOutputPath(job, p1);
-    Path outputPath = new Path(args[1]);
-    outputPath.getFileSystem(conf).delete(outputPath);
     job.waitForCompletion(true);
   }
 }

@@ -64,19 +64,16 @@ Mapper:
 
 ```java
 public static class Map extends Mapper<LongWritable, Text, Text, IntWritable> {
-  private final static IntWritable one = new IntWritable(1);
-  private Text word = new Text();
+	private Text word = new Text();
 
-  public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-    // Split the input into key and value
-    String line = value.toString();
-    StringTokenizer tokenizer = new StringTokenizer(line);
-    while (tokenizer.hasMoreTokens()) {
-      word.set(tokenizer.nextToken());
-      // Assign the value 1 to each node
-      context.write(word, one);
-    }
-  }
+	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+		String line = value.toString();
+		StringTokenizer tokenizer = new StringTokenizer(line);
+		while (tokenizer.hasMoreTokens()) {
+			word.set(tokenizer.nextToken());
+			context.write(word, new IntWritable(1));
+		}
+	}
 }
 ```
 
@@ -84,15 +81,14 @@ Reducer:
 
 ```java
 public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
-  public void reduce(Text key, Iterable<IntWritable> values, Context context)  throws IOException, InterruptedException {
-    // Sum up the values of each node
-    int sum = 0;
-    for (IntWritable val : values) {
-      sum += val.get();
-    }
-    // Label each node
-    context.write(key, new IntWritable(sum));
-  }
+	public void reduce(Text key, Iterable<IntWritable> values, Context context)
+		throws IOException, InterruptedException {
+		int count = 0;
+		for (IntWritable val : values) {
+			count += val.get();
+		}
+		context.write(key, new IntWritable(count));
+	}
 }
 ```
 
@@ -113,14 +109,14 @@ Now let's actually run the MapReduce job.
 Create a new directory in the HDFS:
 
 ```bash
-hadoop fs -mkdir /WordCount
-hadoop fs -mkdir /WordCount/input
+hdfs dfs -mkdir /WordCount
+hdfs dfs -mkdir /WordCount/input
 ```
 
 Copy the input file from the local file system to the HDFS:
 
 ```bash
-hadoop fs -put Input/file01 /WordCount/input
+hdfs dfs -put input/file01 /WordCount/input
 ```
 
 ![Problem 01: Copy input file to HDFS](images/problem01/input.png)
@@ -158,43 +154,41 @@ Here is an example of the input file:
 ```text
 Hello everyone this is a sample dataset. Calculate the word size and count the number of words of that size in this text file
 ```
-Idea: Split each word in file input and caculate its length, length of the word is a key and word is a value.After that, calculate frequency of each length of word
 
-The program will be have three main components: Mapper, Reducer, and Driver 
+Idea: Split each word in file input and caculate its length, length of the word is a key and word is a value. After that, calculate frequency of each length of word
+
+The program will be have three main components: Mapper, Reducer, and Driver
 
 The Mapper class is responsible for taking the input data and converting it into key-value pair. More specifically, it takes each word and caculate its length, output will be the length of the word as the key and the word itself as a value
 
-| key     | value |
-| ------- | ----- |
-| 5       | Hello    |
-| 8       | everyone     |
-| 4       | this     |
-| 2       | is     |
-| 1       | a    |
-| 6       | sample    |
-| 8       | dataset.     |
-| 9       | Calculate     |
-| 3       | the     |
-|...      |... |
-| 4       |file |
+| key | value     |
+| --- | --------- |
+| 5   | Hello     |
+| 8   | everyone  |
+| 4   | this      |
+| 2   | is        |
+| 1   | a         |
+| 6   | sample    |
+| 8   | dataset.  |
+| 9   | Calculate |
+| 3   | the       |
+| ... | ...       |
+| 4   | file      |
 
-The Reducer class takes ouput from the Mapper and performs the actual word count by aggregating all the values for a given key (which is the length of the word). The output of the Reducer is the length of the word as a key and the total count of words with that lenght as a value 
+The Reducer class takes ouput from the Mapper and performs the actual word count by aggregating all the values for a given key (which is the length of the word). The output of the Reducer is the length of the word as a key and the total count of words with that lenght as a value
 
-| key     | value |
-| ------- | ----- |
+| key | value |
+| --- | ----- |
 | 1   | 1     |
-| 2 | 4     |
-| 3      | 3     |
-| 4     | 8    |
-| 5    | 3     |
-|6      | 2 |
-| 8      | 2     |
-| 9    | 1     |
-
-
+| 2   | 4     |
+| 3   | 3     |
+| 4   | 8     |
+| 5   | 3     |
+| 6   | 2     |
+| 8   | 2     |
+| 9   | 1     |
 
 The Driver class sets up the configuration of the MapReduce job by specifying the input and output paths, the Mapper and Reducer classes to be used, and the input and output data formats.
-
 
 **Implementation with MapReduce**
 
@@ -204,38 +198,36 @@ Mapper:
 
 ```java
 public static class Map extends Mapper<LongWritable, Text, IntWritable, Text> {
-        private static IntWritable count;
-        private Text word = new Text();
-        @Override
-        public void map(LongWritable key, Text value, Mapper<LongWritable, Text, IntWritable, Text>.Context context) throws IOException, InterruptedException {
-            String line = value.toString(); // Transfer to String type
-            StringTokenizer stringTokenizer = new StringTokenizer(line); // Split the input String into separate tokens
-            while (stringTokenizer.hasMoreTokens()) {
-                String eWord = stringTokenizer.nextToken();  // Assign eWord variable for each word
-                count = new IntWritable(eWord.length());  // Length of each word
-                word.set(eWord);
-                context.write(count, word);
-            }
-        }
-    }
+	private static IntWritable count;
+	private Text word = new Text();
+	@Override
+	public void map(LongWritable key, Text value, Mapper<LongWritable, Text, IntWritable, Text>.Context context) throws IOException, InterruptedException {
+		String line = value.toString(); // Transfer to String type
+		StringTokenizer stringTokenizer = new StringTokenizer(line); // Split the input String into separate tokens
+		while (stringTokenizer.hasMoreTokens()) {
+			String eWord = stringTokenizer.nextToken();  // Assign eWord variable for each word
+			count = new IntWritable(eWord.length());  // Length of each word
+			word.set(eWord);
+			context.write(count, word);
+		}
+	}
+}
 ```
 
 Reducer:
 
 ```java
 public static class Reduce extends Reducer<IntWritable, Text, IntWritable, IntWritable> {
-
-        @Override
-        public void reduce(IntWritable key, Iterable<Text> values, Reducer<IntWritable, Text, IntWritable, IntWritable>.Context context)
-                throws IOException, InterruptedException {
-            int sum = 0;
-            for (Text x : values) {
-                sum++; // Calculate frequency of each length of word
-            }
-            context.write(key, new IntWritable(sum));
-        }
-
-    }
+	@Override
+	public void reduce(IntWritable key, Iterable<Text> values, Reducer<IntWritable, Text, IntWritable, IntWritable>.Context context)
+			throws IOException, InterruptedException {
+		int sum = 0;
+		for (Text x : values) {
+			sum++; // Calculate frequency of each length of word
+		}
+		context.write(key, new IntWritable(sum));
+	}
+}
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem02).
@@ -255,23 +247,33 @@ Now let's actually run the MapReduce job.
 Create a new directory in the HDFS:
 
 ```bash
-hadoop dfs -mkdir /bai2
+hdfs dfs -mkdir /bai2
 ```
 
 Copy the input file from the local file system to the HDFS:
 
 ```bash
-hadoop dfs -put input/WordSize.txt /bai2
+hdfs dfs -put input/WordSize.txt /bai2
 ```
 
 ![Problem 02: Copy input file to HDFS](images/problem02/input.PNG)
 
-> > Create jar file and copy it into user home
+Compile the `WordSizeWordCount.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main WordSizeWordCount.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf WordSize.jar WordSizeWordCount*.class
+```
 
 Run the MapReduce job:
 
 ```bash
-hadoop jar WordSize.jar hadoop.WordSizeWordCount /bai2 /output
+hadoop jar WordSize.jar WordSizeWordCount /bai2 /output
 ```
 
 ![Problem 02: Run MapReduce job](images/problem02/process1.PNG)
@@ -280,11 +282,11 @@ hadoop jar WordSize.jar hadoop.WordSizeWordCount /bai2 /output
 
 ![Problem 02: Output](images/problem02/output.PNG)
 
-## Problem 03: Weather Data
+## Problem 03: WeatherData Program
 
 In this section, we will try to solve a problem: Weather Data. The purpose of this problem is find out the dates with maximum temperature greater than 40(A Hot Day) and minimum temperature lower than 10(A Cold Day).
 
-Idea: Extract date from the line using the substring method as well as maximum temperature(compare with 40) and minimum temperature(compare with 10)
+Idea: Extract date from the line using the substring method as well as maximum temperature (compare with 40) and minimum temperature(compare with 10)
 
 Here is an example of the input file:
 
@@ -331,37 +333,35 @@ We can implement this problem with MapReduce. The mapper will split the input in
 Mapper:
 
 ```java
-public static class MaxTemperatureMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
-        @Override
-        public void map(LongWritable longWritable, Text text,
-                        OutputCollector<Text, Text> outputCollector, Reporter reporter)
-                throws IOException {
-            String line = text.toString(); // Transfer to String type
-            String date = line.substring(6, 14); // Get date data
-            float tempMax = Float.parseFloat(line.substring(39, 45).trim()); // Get maximum temperature and transfer to float type
-            float tempMin = Float.parseFloat(line.substring(47, 53).trim()); // Get minimum temperature and transfer to float type
-            if (tempMax > 40.0) { // Check
-                outputCollector.collect(new Text("Hot Day " + date),
-                        new Text(String.valueOf(tempMax)));
-            }
-            if (tempMin < 10) {
-                outputCollector.collect(new Text("Cold Day " + date),
-                        new Text(String.valueOf(tempMin))); //
-            }
-        }
-    }
+public static class MaxTemperatureMapper extends Mapper<LongWritable, Text, Text, Text> {
+	@Override
+	public void map(LongWritable key, Text text, Context context) throws IOException, InterruptedException {
+		String line = text.toString(); // Transfer to String type
+		String date = line.substring(6, 14); // Get date data
+		float tempMax = Float.parseFloat(line.substring(39, 45).trim()); // Get maximum temperature and transfer to float type
+		float tempMin = Float.parseFloat(line.substring(47, 53).trim()); // Get minimum temperature and transfer to float type
+		if (tempMax > 40.0) { // Check
+			context.write(new Text("Hot Day " + date),
+					new Text(String.valueOf(tempMax)));
+		}
+		if (tempMin < 10) {
+			context.write(new Text("Cold Day " + date),
+					new Text(String.valueOf(tempMin))); //
+		}
+	}
+}
 ```
 
 Reducer:
 
 ```java
-public static class MaxTemperatureReducer extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
-        @Override
-        public void reduce(Text Key, Iterator<Text> iterator, OutputCollector<Text, Text> outputCollector, Reporter reporter) throws IOException {
-            String temperature = iterator.next().toString();
-            outputCollector.collect(Key, new Text(temperature));
-        }
-    }
+public static class MaxTemperatureReducer extends Reducer<Text, Text, Text, Text> {
+	@Override
+	public void reduce(Text Key, Iterable<Text> iterator, Context context) throws IOException, InterruptedException {
+		String temperature = iterator.iterator().next().toString();
+		context.write(Key, new Text(temperature));
+	}
+}
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem03).
@@ -381,23 +381,33 @@ Now let's actually run the MapReduce job.
 Create a new directory in the HDFS:
 
 ```bash
-hadoop dfs -mkdir /bai3
+hdfs dfs -mkdir /bai3
 ```
 
 Copy the input file from the local file system to the HDFS:
 
 ```bash
-hadoop dfs -put home/20120573_npt/weather_data.txt /bai3
+hdfs dfs -put input/weather_data.txt /bai3
 ```
 
 ![Problem 03: Copy input file to HDFS](images/problem03/input.PNG)
 
-> > Create a jar file and copy it into user home
+Compile the `WeatherData.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main WeatherData.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf WeatherData.jar WeatherData*.class
+```
 
 Run the MapReduce job:
 
 ```bash
-hadoop jar WeatherData.jar hadoop.WeatherData /bai3 /output3
+hadoop jar WeatherData.jar WeatherData /bai3 /output3
 ```
 
 ![Problem 03: Run MapReduce job](images/problem03/process1.PNG)
@@ -405,6 +415,8 @@ hadoop jar WeatherData.jar hadoop.WeatherData /bai3 /output3
 ![Problem 03: MapReduce job output](images/problem03/process2.PNG)
 
 ![Problem 03: Output 1](images/problem03/output1.PNG)
+
+![Problem 03: Output 2](images/problem03/output2.PNG)
 
 ## Problem 04: Patent Program
 
@@ -482,36 +494,34 @@ Mapper:
 
 ```java
 public static class Map extends Mapper<LongWritable, Text, Text, Text> {
-  Text k = new Text();
-  Text v = new Text();
+	Text keyText = new Text();
+	Text valueText = new Text();
 
-  public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-    // Split the input into key and value
-    String line = value.toString();
-    StringTokenizer tokenizer = new StringTokenizer(line, " ");
-    // signal the key and value
-    while (tokenizer.hasMoreTokens()) {
-      k.set(tokenizer.nextToken());
-      v.set(tokenizer.nextToken());
-      context.write(k, v);
-    }
-  }
-}
+	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+		String line = value.toString();
+		StringTokenizer tokenizer = new StringTokenizer(line, " ");
+		// get each pair in 1 line
+		while (tokenizer.hasMoreTokens()) {
+			keyText.set(tokenizer.nextToken());
+			valueText.set(tokenizer.nextToken());
+			context.write(keyText, valueText);
+		}
+	}
+	}
 ```
 
 Reducer:
 
 ```java
 public static class Reduce extends Reducer<Text, Text, Text, IntWritable> {
-  public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-    // Count the number of occurrences of each key
-    int sum = 0;
-    for (Text x : values) {
-      sum++;
-    }
-    // Label each node
-    context.write(key, new IntWritable(sum));
-  }
+	public void reduce(Text key, Iterable<Text> values, Context context)
+		throws IOException, InterruptedException {
+		int count = 0;
+		for (Text value : values) {
+			count++;
+		}
+		context.write(key, new IntWritable(count));
+	}
 }
 ```
 
@@ -532,14 +542,14 @@ Now let's actually run the MapReduce job.
 Create a new directory in the HDFS:
 
 ```bash
-hadoop fs -mkdir /Patent
-hadoop fs -mkdir /Patent/input
+hdfs dfs -mkdir /Patent
+hdfs dfs -mkdir /Patent/input
 ```
 
 Copy the input file from the local file system to the HDFS:
 
 ```bash
-hadoop fs -put Input/file01 /Patent/input
+hdfs dfs -put input/file01 /Patent/input
 ```
 
 ![Problem 04: Copy input file to HDFS](images/problem04/input.png)
@@ -606,6 +616,7 @@ The first step is to write the mapper. It will read each line of the input file 
 
 ```java
 public static class MaxTempMapper extends Mapper<LongWritable, Text, IntWritable, FloatWritable> {
+	@Override
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 		// get the necessary fields from the input record
 		String[] fields = value.toString().split("\\s+");
@@ -625,6 +636,7 @@ The reducer will read the year and the temperature, then find the maximum temper
 
 ```java
 public static class MaxTempReducer extends Reducer<IntWritable, FloatWritable, IntWritable, FloatWritable> {
+	@Override
 	public void reduce(IntWritable key, Iterable<FloatWritable> values, Context context) throws IOException, InterruptedException {
 		// find the maximum temperature
 		float maxTemp = Float.MIN_VALUE;
@@ -752,41 +764,39 @@ We can implement this problem with MapReduce. The mapper will split the input in
 Mapper:
 
 ```java
-public static class avgMapper extends Mapper<Object, Text, Text, FloatWritable> {
-  private Text dept_id = new Text();
-  private FloatWritable salary = new FloatWritable();
-  public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-    // Split the input into key and value
-    String line = value.toString();
-    StringTokenizer itr = new StringTokenizer(line, ",");
-    // signal the key and value
-    while (itr.hasMoreTokens()) {
-      dept_id.set(itr.nextToken());
-      salary = new FloatWritable(Float.parseFloat(itr.nextToken()));
-      context.write(dept_id, salary);
-    }
-  }
+public static class Map extends Mapper<Object, Text, Text, FloatWritable> {
+	private Text id = new Text();
+	private FloatWritable salary = new FloatWritable();
+
+	public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+		String line = value.toString();
+		StringTokenizer itr = new StringTokenizer(line, ",");
+		while (itr.hasMoreTokens()) {
+			id.set(itr.nextToken());
+			salary = new FloatWritable(Float.parseFloat(itr.nextToken()));
+			context.write(id, salary);
+		}
+	}
 }
 ```
 
 Reducer:
 
 ```java
-public static class avgReducer extends Reducer<Text, FloatWritable, Text, FloatWritable> {
-  private FloatWritable result = new FloatWritable();
-  public void reduce(Text key, Iterable<FloatWritable> values, Context context)
-      throws IOException, InterruptedException {
-    // Count sum and calculate the average salary
-    float sum = 0;
-    float count = 0;
-    for (FloatWritable val : values) {
-      sum += val.get();
-      count++;
-    }
-    // Label each node
-    result.set(sum / count);
-    context.write(key, result);
-  }
+public static class Reduce extends Reducer<Text, FloatWritable, Text, FloatWritable> {
+	private FloatWritable result = new FloatWritable();
+
+	public void reduce(Text key, Iterable<FloatWritable> values, Context context)
+		throws IOException, InterruptedException {
+		float sum = 0;
+		float count = 0;
+		for (FloatWritable val : values) {
+			sum += val.get();
+			count++;
+		}
+		result.set(sum / count);
+		context.write(key, result);
+	}
 }
 ```
 
@@ -807,14 +817,14 @@ Now let's actually run the MapReduce job.
 Create a new directory in the HDFS:
 
 ```bash
-hadoop fs -mkdir /AverageSalary
-hadoop fs -mkdir /AverageSalary/input
+hdfs dfs -mkdir /AverageSalary
+hdfs dfs -mkdir /AverageSalary/input
 ```
 
 Copy the input file from the local file system to the HDFS:
 
 ```bash
-hadoop fs -put Input/file01 /AverageSalary/input
+hdfs dfs -put input/file01 /AverageSalary/input
 ```
 
 ![Problem 06: Copy input file to HDFS](images/problem06/input.png)
@@ -844,91 +854,84 @@ hadoop jar AverageSalary.jar AverageSalary /AverageSalary/input /AverageSalary/o
 ![Problem 06: Output](images/problem06/output.png)
 
 ## Problem 07: De Identify HealthCare Program
+
 In this section, we will try to solve a problem: De Identify HealthCare. The purpose of this problem is to perform data de-identification by encrypting specific columns in a CSV file using AES algorithm.
 
 Idea: Takes a CSV file as input, and for each row in the file, it identifies the columns to be encrypted based on a pre-defined list of column indexes, then applied ASE encryption to the values in the identified columns.
 
 Here is an example of the input file:
 
-```csv
-PatientId	Name 	DOB	Phone Number	Email_Address	SSN	Gender	Disease	weight
-11111	bbb1	12/10/1950	1230000000	bb1@xxx.com	1110000000	M	Diabetes	78
-11112	bbb2	12/10/1984	1230000000	bb2@xxx.com	1110000000	F	PCOS	67
-11113	bbb3	12/11/1940	1230000000	bb3@xxx.com	1110000000	M	Fever	90
-11114	bbb4	12/12/1950	1230000000	bb4@xxx.com	1110000000	F	Cold	88
-11115	bbb5	12/13/1960	1230000000	bb5@xxx.com	1110000000	M	"Blood 
-Pressure"	76
-11116	bbb6	12/14/1970	1230000000	bb6@xxx.com	1110000000	F	Malaria	84
+```text
+PatientId,Name,DOB,Phone Number,Email_Address,SSN,Gender,Disease,weight
+11111,bbb1,12/10/1950,1230000000,bb1@xxx.com,1110000000,M,Diabetes,78
+11112,bbb2,12/10/1984,1230000000,bb2@xxx.com,1110000000,F,PCOS,67
+11113,bbb3,12/11/1940,1230000000,bb3@xxx.com,1110000000,M,Fever,90
+11114,bbb4,12/12/1950,1230000000,bb4@xxx.com,1110000000,F,Cold,88
+11115,bbb5,12/13/1960,1230000000,bb5@xxx.com,1110000000,M,Blood Pressure,76
+11116,bbb6,12/14/1970,1230000000,bb6@xxx.com,1110000000,F,Malaria,84
 ```
 
 **Implementation with MapReduce**
 
-The input record is passed as a Text object to the function, which is then converted to a String using the toString() method. 
-The function first creates a list of field numbers that need to be encrypted, based on the encryptCol array. Split the input record. The function then iterates over each field and checks whether it needs to be encrypted. If the field is in the list of encrypted fields, the encrypt function is called to encrypt the field using the encryptKey byte array. 
-After processing all fields, the newStr string is written to the output using the context.write() method, with a NullWritable key and a Text value containing the transformed record.
+The input record is passed as a Text object to the function, which is then converted to a `String` using the `toString()` method.
+The function first creates a list of field numbers that need to be encrypted, based on the `encryptCol` array. Split the input record. The function then iterates over each field and checks whether it needs to be encrypted. If the field is in the list of encrypted fields, the encrypt function is called to encrypt the field using the encryptKey byte array.
+After processing all fields, the `newString` string is written to the output using the `context.write()` method, with a `NullWritable` key and a `Text` value containing the transformed record.
 
 Mapper:
+
 ```java
 public static class Map extends Mapper<Object, Text, NullWritable, Text> {
-        public void map(Object key, Text value, Context context)
-                throws IOException, InterruptedException {
-            StringTokenizer itr = new StringTokenizer(value.toString(),",");
-            List<Integer> list=new ArrayList<Integer>();
-            Collections.addAll(list, Columns);
-            String newString="";
-            int counter=1;
-            while (itr.hasMoreTokens()) { // Checks whether the current column being processed is one of the columns to be encrypted, as specified in the Columns array.
-                String token=itr.nextToken();
-                if(list.contains(counter))
-                {
-                    if(newStr.length()>0)
-                        newString+=",";
-                    newString+=encrypt(token, encryptionKey); // Encrypt token and append to the "newString"
-                }
-                else
-                {
-                    if(newStr.length()>0)
-                        newString+=",";
-                    newString+=token; // The original token value is appened to the "newString"
-                }
-                counter=counter+1;
-            }
-            context.write(NullWritable.get(), new Text(newStr.toString())); 
-        }
-    }
+	public void map(Object key, Text value, Context context)
+			throws IOException, InterruptedException {
+		StringTokenizer itr = new StringTokenizer(value.toString(), ",");
+		List<Integer> list = new ArrayList<Integer>();
+		Collections.addAll(list, Columns);
+		String newString = "";
+		int counter = 1;
+		while (itr.hasMoreTokens()) { // Checks whether the current column being processed is one of the columns to be encrypted, as specified in the Columns array.
+			String token = itr.nextToken();
+			if(list.contains(counter)) {
+				if(newString.length() > 0)
+					newString += ",";
+				newString += encrypt(token, encryptionKey); // Encrypt token and append to the  "newString"
+			} else {
+				if(newString.length() > 0)
+					newString += ",";
+				newString += token; // The original token value is appened to the "newString"
+			}
+			counter = counter + 1;
+		}
+		context.write(NullWritable.get(), new Text(newString.toString()));
+	}
+}
 ```
 
 Encryption
+
 ```java
-public static String encrypt(String encryptString, byte[] key)
-    {
-        try
-        {
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-            SecretKeySpec secretKey = new SecretKeySpec(key, "AES");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-            String encryptedString = Base64.encodeBase64String(cipher.doFinal(encryptString.getBytes()));
-            return encryptedString.trim();
-        }
-        catch (Exception e)
-        {
-            logger.error("Error encrypting", e);
-        }
-        return null;
-    }
+public static String encrypt(String encryptString, byte[] key) { // Ecryption
+	try {
+		Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+		SecretKeySpec secretKey = new SecretKeySpec(key, "AES");
+		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+		String encryptedString = Base64.encodeBase64String(cipher.doFinal(encryptString.getBytes()));
+		return encryptedString.trim();
+	} catch (Exception e) {
+		logger.error("Error encrypting", e);
+	}
+	return null;
+}
 ```
 
-#### help me to enter link to the source code
-
-The full source code can be found [here](.............).
+The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem07).
 
 Here is the directory structure of the project:
 
 ```
-📦src
+📦problem07
  ┣ 📂output
- ┣ 📂Input
- ┃  ┗ 📜 file01
+ ┣ 📂input
+ ┃  ┗ 📜 bai7.csv
  ┗ 📜DeIdentifyData.java
 ```
 
@@ -937,31 +940,40 @@ Now let's actually run the MapReduce job.
 Create a new directory in the HDFS:
 
 ```bash
-hadoop dfs -mkdir /bai7
+hdfs dfs -mkdir /bai7
 ```
 
 Copy the input file from the local file system to the HDFS:
 
 ```bash
-hadoop dfs -put home/20120573_npt/Health.csv /bai7
+hdfs dfs -put input/bai7.csv /bai7
 ```
 
-![Copy input file to HDFS](images/problem07/input.png)
+![Problem 07: Copy input file to HDFS](images/problem07/input.png)
 
-Create a jar file and copy it into user home
+Compile the `DeIdentifyData.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main DeIdentifyData.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf DeIdentifyData.jar DeIdentifyData*.class
+```
 
 Run the MapReduce job:
 
 ```bash
-hadoop jar DeIdentifyData.jar hadoop.DeIdentifyData /bai7/Health.csv /Bai8
+hadoop jar DeIdentifyData.jar DeIdentifyData /bai7/bai7.csv /Bai7
 ```
 
-![Run MapReduce job](images/problem07/process1.png)
+![Problem 07: Run MapReduce job](images/problem07/process1.png)
 
-![MapReduce job output](images/problem07/process2.png)
+![Problem 07: MapReduce job output](images/problem07/process2.png)
 
-![output](images/problem07/output.png)
-
+![Problem 07: Output](images/problem07/output.png)
 
 ## Problem 08: Music Track Program
 
@@ -1033,6 +1045,7 @@ Reducer:
         }
     }
 ```
+
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem08).
@@ -1040,25 +1053,27 @@ The full source code can be found [here](https://github.com/phihungtf/teamBaDao_
 Here is the directory structure of the project:
 
 ```
+
 📦problem08
- ┣ 📂output
- ┣ 📂input
- ┃  ┗ 📜 LastFMlog.txt
- ┗ 📜UniqueListeners.java
-```
+┣ 📂output
+┣ 📂input
+┃ ┗ 📜 LastFMlog.txt
+┗ 📜UniqueListeners.java
+
+````
 
 Now let's actually run the MapReduce job.
 
 Create a new directory in the HDFS:
 
 ```bash
-hadoop dfs -mkdir /bai8
-```
+hdfs dfs -mkdir /bai8
+````
 
 Copy the input file from the local file system to the HDFS:
 
 ```bash
-hadoop dfs -put home/20120573_NPT/bai8.txt /bai8
+hdfs dfs -put home/20120573_NPT/bai8.txt /bai8
 ```
 
 ![Problem 08: Copy input file to HDFS](images/problem08/input.PNG)
