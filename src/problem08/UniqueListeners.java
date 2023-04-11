@@ -1,14 +1,13 @@
-package com.hadoop.hadoop;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -20,12 +19,19 @@ public class UniqueListeners {
         INVALID_RECORD_COUNT
     }
 
+	public class LastFMConstants {
+		public static final int USER_ID = 0;
+		public static final int TRACK_ID = 1;
+		public static final int IS_SHARED = 2;
+		public static final int RADIO = 3;
+		public static final int IS_SKIPPED = 4;
+	}
+
     public static class UniqueListenersMapper extends Mapper<Object, Text, IntWritable, IntWritable> {
         IntWritable trackId = new IntWritable();
         IntWritable userId = new IntWritable();
         @Override
-        public void map(Object key, Text value,
-                        Mapper<Object, Text, IntWritable, IntWritable>.Context context)
+        public void map(Object key, Text value, Context context)
                 throws IOException, InterruptedException {
             String[] parts = value.toString().split("[|]"); // Split input value with regex(|)
             trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID])); // Assign trackId
@@ -40,8 +46,8 @@ public class UniqueListeners {
 
     public static class UniqueListenersReducer extends
             Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
-
-        public void reduce(IntWritable trackId, Iterable<IntWritable> userIds, Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
+		@Override
+        public void reduce(IntWritable trackId, Iterable<IntWritable> userIds, Context context)
                 throws IOException, InterruptedException {
             Set<Integer> userIdSet = new HashSet<Integer>();
             for (IntWritable userId : userIds) { // Extracts the unique user IDs for a given track ID
@@ -58,19 +64,24 @@ public class UniqueListeners {
             System.err.println("Usage: uniqueListeners <in> <out>");
             System.exit(2);
         }
-        Job job = new Job(conf, "Unique listeners per track");
+        Job job = Job.getInstance(conf, "Unique listeners per track");
         job.setJarByClass(UniqueListeners.class);
         job.setMapperClass(UniqueListenersMapper.class);
         job.setReducerClass(UniqueListenersReducer.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(IntWritable.class);
+		// if the output path already exists, delete it
+		Path outputPath = new Path(args[1]);
+		FileSystem fs = FileSystem.get(conf);
+		if (fs.exists(outputPath)) {
+			fs.delete(outputPath, true);
+		}
         FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        FileOutputFormat.setOutputPath(job, outputPath);
         System.exit(job.waitForCompletion(true) ? 0 : 1);
-        org.apache.hadoop.mapreduce.Counters counters = job.getCounters();
+        Counters counters = job.getCounters();
         System.out.println("No. of Invalid Records :"
                 + counters.findCounter(COUNTERS.INVALID_RECORD_COUNT)
                 .getValue());
     }
-
 }

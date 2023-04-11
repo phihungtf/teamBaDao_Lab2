@@ -100,7 +100,7 @@ Here is the directory structure of the project:
 📦problem01
  ┣ 📂output
  ┣ 📂input
- ┃  ┗ 📜 file01
+ ┃  ┗ 📜file01
  ┗ 📜WordCount.java
 ```
 
@@ -533,7 +533,7 @@ Here is the directory structure of the project:
 📦problem04
  ┣ 📂output
  ┣ 📂input
- ┃  ┗ 📜 file01
+ ┃  ┗ 📜file01
  ┗ 📜Patent.java
 ```
 
@@ -808,7 +808,7 @@ Here is the directory structure of the project:
 📦problem06
  ┣ 📂output
  ┣ 📂input
- ┃  ┗ 📜 file01
+ ┃  ┗ 📜file01
  ┗ 📜AverageSalary.java
 ```
 
@@ -931,7 +931,7 @@ Here is the directory structure of the project:
 📦problem07
  ┣ 📂output
  ┣ 📂input
- ┃  ┗ 📜 bai7.csv
+ ┃  ┗ 📜bai7.csv
  ┗ 📜DeIdentifyData.java
 ```
 
@@ -1010,42 +1010,39 @@ Mapper:
 
 ```java
 public static class UniqueListenersMapper extends Mapper<Object, Text, IntWritable, IntWritable> {
-        IntWritable trackId = new IntWritable();
-        IntWritable userId = new IntWritable();
-        @Override
-        public void map(Object key, Text value,
-                        Mapper<Object, Text, IntWritable, IntWritable>.Context context)
-                throws IOException, InterruptedException {
-            String[] parts = value.toString().split("[|]"); // Split input value with regex(|)
-            trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID])); // Assign trackId
-            userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID])); // Assign userId
-            if (parts.length == 5) { // Check invalid record
-                context.write(trackId, userId);
-            } else {
-                context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
-            }
-        }
-    }
+	IntWritable trackId = new IntWritable();
+	IntWritable userId = new IntWritable();
+	@Override
+	public void map(Object key, Text value, Context context)
+			throws IOException, InterruptedException {
+		String[] parts = value.toString().split("[|]"); // Split input value with regex(|)
+		trackId.set(Integer.parseInt(parts[LastFMConstants.TRACK_ID])); // Assign trackId
+		userId.set(Integer.parseInt(parts[LastFMConstants.USER_ID])); // Assign userId
+		if (parts.length == 5) { // Check invalid record
+			context.write(trackId, userId);
+		} else {
+			context.getCounter(COUNTERS.INVALID_RECORD_COUNT).increment(1L);
+		}
+	}
+}
 ```
 
 Reducer:
 
 ```java
-    public static class UniqueListenersReducer extends
+public static class UniqueListenersReducer extends
             Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
-
-        public void reduce(IntWritable trackId, Iterable<IntWritable> userIds, Reducer<IntWritable, IntWritable, IntWritable, IntWritable>.Context context)
-                throws IOException, InterruptedException {
-            Set<Integer> userIdSet = new HashSet<Integer>();
-            for (IntWritable userId : userIds) { // Extracts the unique user IDs for a given track ID
-                userIdSet.add(userId.get());
-            }
-            IntWritable size = new IntWritable(userIdSet.size());
-            context.write(trackId, size); // Return key-value pair with trackId as a key and the number of user Id as a value
-        }
-    }
-```
-
+	@Override
+	public void reduce(IntWritable trackId, Iterable<IntWritable> userIds, Context context)
+			throws IOException, InterruptedException {
+		Set<Integer> userIdSet = new HashSet<Integer>();
+		for (IntWritable userId : userIds) { // Extracts the unique user IDs for a given track ID
+			userIdSet.add(userId.get());
+		}
+		IntWritable size = new IntWritable(userIdSet.size());
+		context.write(trackId, size); // Return key-value pair with trackId as a key and the number of user Id as a value
+	}
+}
 ```
 
 The full source code can be found [here](https://github.com/phihungtf/teamBaDao_Lab2/tree/main/src/problem08).
@@ -1053,14 +1050,12 @@ The full source code can be found [here](https://github.com/phihungtf/teamBaDao_
 Here is the directory structure of the project:
 
 ```
-
 📦problem08
 ┣ 📂output
 ┣ 📂input
-┃ ┗ 📜 LastFMlog.txt
+┃ ┗ 📜LastFMlog.txt
 ┗ 📜UniqueListeners.java
-
-````
+```
 
 Now let's actually run the MapReduce job.
 
@@ -1068,22 +1063,32 @@ Create a new directory in the HDFS:
 
 ```bash
 hdfs dfs -mkdir /bai8
-````
+```
 
 Copy the input file from the local file system to the HDFS:
 
 ```bash
-hdfs dfs -put home/20120573_NPT/bai8.txt /bai8
+hdfs dfs -put input/LastFMlog.txt /bai8
 ```
 
 ![Problem 08: Copy input file to HDFS](images/problem08/input.PNG)
 
-Create a jar file and copy it into user home
+Compile the `UniqueListeners.java` file:
+
+```bash
+hadoop com.sun.tools.javac.Main UniqueListeners.java
+```
+
+Create a JAR file:
+
+```bash
+sudo jar cf UniqueListeners.jar UniqueListeners*.class
+```
 
 Run the MapReduce job:
 
 ```bash
-hadoop jar UniqueListeners.jar hadoop.UniqueListeners /bai8 /output8
+hadoop jar UniqueListeners.jar UniqueListeners /bai8 /output8
 ```
 
 ![Problem 08: Run MapReduce job](images/problem08/process1.PNG)
@@ -1123,7 +1128,7 @@ The first step is to write the mapper. It will read each line of the input file 
 
 ```java
 public static class STDMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
-
+	@Override
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 		// get the necessary fields from the input record
 		String[] fields = value.toString().split("\\|");
@@ -1161,6 +1166,7 @@ The reducer will read the phone number and the duration of its STD calls, then s
 
 ```java
 public static class STDReducer extends Reducer<Text, LongWritable, Text, NullWritable> {
+	@Override
 	public void reduce(Text key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
 		long totalDuration = 0; // total duration of the calls made by the subscriber
 

@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -17,7 +17,7 @@ import org.apache.hadoop.mapreduce.lib.output.*;
 public class STDSubscribers {
 
     public static class STDMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
-
+		@Override
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			// get the necessary fields from the input record
             String[] fields = value.toString().split("\\|");
@@ -48,6 +48,7 @@ public class STDSubscribers {
         }
     }
     public static class STDReducer extends Reducer<Text, LongWritable, Text, NullWritable> {
+		@Override
         public void reduce(Text key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
             long totalDuration = 0; // total duration of the calls made by the subscriber
 
@@ -73,8 +74,14 @@ public class STDSubscribers {
 		job.setMapOutputValueClass(LongWritable.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(NullWritable.class);
+		// if the output path already exists, delete it
+		Path outputPath = new Path(args[1]);
+		FileSystem fs = FileSystem.get(conf);
+		if (fs.exists(outputPath)) {
+			fs.delete(outputPath, true);
+		}
         FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        FileOutputFormat.setOutputPath(job, outputPath);
         System.exit(job.waitForCompletion(true) ? 0 : 1);
 	}
 }
